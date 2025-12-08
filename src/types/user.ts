@@ -15,6 +15,13 @@ export interface OjInfo {
   cwnuoj?: string
 }
 
+export interface ratingInfo {
+  contest?: number
+  problem?: number
+  legacy?: number
+  activeCoefficier: number
+}
+
 // 3. 完整的用户接口 (对应数据库)
 export interface User {
   _id?: string // 新增时没有 ID
@@ -33,10 +40,12 @@ export interface User {
   role: Role // 必填
   status: Status // 必填
 
-  // 以下两项新增时不需要填，有默认值
+  // 以下新增时不需要填，有默认值
   ojInfo: OjInfo
   problemNumber: number
   rating: number
+  ratingInfo?: ratingInfo
+  lastMonthSolved?: number;
 }
 
 // 定义查询参数接口

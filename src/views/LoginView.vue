@@ -69,7 +69,7 @@ const handleLogin = async () => {
     const data = await loginApi(username.value, password.value) // data 被推断为 LoginResponse
 
     // 1. 存储 Token (关键!)
-    localStorage.setItem('token', data.token)
+    userStore.setToken(data.token)
 
     // 2. 存储用户信息到 Pinia
     userStore.setUser(data.user)

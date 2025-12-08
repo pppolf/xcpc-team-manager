@@ -19,7 +19,7 @@
           <div class="tips-content">
             <p><strong>请不要包含表头！</strong>直接复制 Excel 数据行粘贴。</p>
             <p>
-              <strong>列顺序 (16列)：</strong>姓名 | 性别 | 学院 | 专业 | 年级 | 学号 | 手机号 |
+              <strong>列顺序 (16列): </strong>姓名 | 性别 | 学院 | 专业 | 年级 | 学号 | 手机号 |
               身份证 | 邮箱 | 入学年份 | T恤 | CF | AT | 牛客 | 洛谷 | 校内OJ
             </p>
           </div>

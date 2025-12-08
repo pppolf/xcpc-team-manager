@@ -71,9 +71,9 @@
               :size="32"
               src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
             />
-            <span class="username">{{ userStore.currentUser?.realName }}</span>
+            <span class="username">{{ userStore.userInfo?.realName }}</span>
             <el-tag size="small" type="success" effect="dark" class="role-tag">{{
-              userStore.currentUser?.role
+              userStore.userInfo?.role
             }}</el-tag>
           </div>
           <el-button link type="danger" @click="handleLogout">退出</el-button>

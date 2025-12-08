@@ -1,28 +1,57 @@
 // src/stores/user.ts
-import { ref, computed } from 'vue'
-import { defineStore } from 'pinia'
-import type { User } from '@/types/user'
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import type { User } from '@/types/user';
+import { getUserProfileApi } from '@/api/index';
 
 export const useUserStore = defineStore('user', () => {
-  const currentUser = ref<User | null>(null)
+  // 1. 初始化时，优先从 localStorage 获取 Token
+  const token = ref<string>(localStorage.getItem('token') || '');
+  const userInfo = ref<User | null>(null);
 
-  // 判断是否登录
-  const isLoggedIn = computed(() => !!currentUser.value)
+  // 2. 设置 Token (登录成功时调用)
+  const setToken = (newToken: string) => {
+    token.value = newToken;
+    localStorage.setItem('token', newToken); // 持久化
+  };
 
-  // 判断是否是管理员 (教练、队长、副队、学生教练)
+  // 3. 设置用户信息
+  const setUser = (user: User) => {
+    userInfo.value = user;
+  };
+
   const isAdmin = computed(() => {
-    if (!currentUser.value) return false
-    const adminRoles = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach']
-    return adminRoles.includes(currentUser.value.role)
+    if (!userInfo.value) return false
+    const adminRoles = ['Teacher', 'Captain', 'Student-Coach']
+    return adminRoles.includes(userInfo.value.role)
   })
 
-  function setUser(user: User) {
-    currentUser.value = user
-  }
+  // 4. 异步获取用户信息 (刷新页面时调用)
+  const fetchUserInfo = async () => {
+    if (!token.value) return;
+    try {
+      const user = await getUserProfileApi();
+      userInfo.value = user;
+    } catch (error) {
+      logout();
+      throw error;
+    }
+  };
 
-  function logout() {
-    currentUser.value = null
-  }
+  // 5. 退出登录
+  const logout = () => {
+    token.value = '';
+    userInfo.value = null;
+    localStorage.removeItem('token');
+  };
 
-  return { currentUser, isLoggedIn, isAdmin, setUser, logout }
-})
+  return {
+    token,
+    userInfo,
+    setToken,
+    setUser,
+    fetchUserInfo,
+    logout,
+    isAdmin
+  };
+});

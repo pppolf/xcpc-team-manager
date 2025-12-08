@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import NProgress from 'nprogress' // 可选：进度条
+import 'nprogress/nprogress.css'
 
 // 引入布局组件
 import LoginView from '../views/LoginView.vue'
@@ -101,13 +103,50 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  NProgress.start()
+
   const userStore = useUserStore()
-  if (to.meta.requiresAuth && !userStore.isLoggedIn) {
+  const token = userStore.token // Pinia 已经自动从 localStorage 读了
+
+  // 1. 如果去的是登录页
+  if (to.path === '/login') {
+    if (token) {
+      next('/admin/overview') // 已登录就别去登录页了
+    } else {
+      next()
+    }
+    return
+  }
+
+  // 2. 如果去的是受保护页面 (假设除了 login 都是受保护的)
+  if (!token) {
     next('/login')
+    return
+  }
+
+  // 3. [核心修复逻辑] 有 Token，但内存里没有用户信息 (说明是刚刷新)
+  if (token && !userStore.userInfo) {
+    try {
+      // 阻塞路由，先去后端拉取用户信息
+      await userStore.fetchUserInfo()
+      // 拉取成功，放行
+      // 注意：这里用 { ...to } 重新导航一次，确保动态路由加载完成(如果有)
+      next({ ...to, replace: true })
+    } catch (error) {
+      // Token 可能过期了，后端返回 401
+      console.error('Token无效或过期', error)
+      userStore.logout()
+      next('/login')
+    }
   } else {
+    // 数据齐全，直接放行
     next()
   }
+})
+
+router.afterEach(() => {
+  NProgress.done()
 })
 
 export default router

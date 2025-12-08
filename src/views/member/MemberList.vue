@@ -114,15 +114,33 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="role" label="角色" min-width="120">
+        <el-table-column prop="role" label="角色" min-width="80">
           <template #default="{ row }">
             <el-tag :type="getRoleType(row.role)" effect="light">{{ row.role }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="problemNumber" label="刷题数" min-width="100" sortable>
+        <el-table-column prop="lastMonthSolved" align="center" label="上次结算" min-width="50">
+          <template #default="{ row }">
+            <span class="last-solve">{{ row.lastMonthSolved || 0 }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column
+          prop="problemNumber"
+          align="center"
+          label="总刷题数"
+          min-width="50"
+          sortable
+        >
           <template #default="{ row }">
             <span class="problem-num">{{ row.problemNumber }}</span>
+            <span
+              v-if="row.problemNumber - (row.lastMonthSolved || 0) > 0"
+              style="font-size: 12px; color: #67c23a; margin-left: 4px"
+            >
+              (+{{ row.problemNumber - (row.lastMonthSolved || 0) }})
+            </span>
           </template>
         </el-table-column>
 
@@ -593,6 +611,10 @@ onMounted(() => {
     .problem-num {
       font-weight: bold;
       color: #e6a23c;
+    }
+    .last-solve {
+      font-weight: bold;
+      color: #909399;
     }
   }
 
