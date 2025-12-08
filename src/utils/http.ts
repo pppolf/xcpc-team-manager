@@ -87,8 +87,8 @@ const http = {
     return service.get(url, { params })
   },
 
-  post<T>(url: string, data?: object): Promise<T> {
-    return service.post(url, data)
+  post<T>(url: string, data?: object, timeout?: object): Promise<T> {
+    return service.post(url, data, timeout)
   },
 
   put<T>(url: string, data?: object): Promise<T> {
