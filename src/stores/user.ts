@@ -11,9 +11,9 @@ export const useUserStore = defineStore('user', () => {
 
   // 判断是否是管理员 (教练、队长、副队、学生教练)
   const isAdmin = computed(() => {
-    if (!currentUser.value) return false;
-    const adminRoles = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach'];
-    return adminRoles.includes(currentUser.value.role);
+    if (!currentUser.value) return false
+    const adminRoles = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach']
+    return adminRoles.includes(currentUser.value.role)
   })
 
   function setUser(user: User) {

@@ -17,7 +17,12 @@
             />
           </el-form-item>
           <el-form-item label="密码">
-            <el-input type="password" placeholder="默认免密登录" disabled :prefix-icon="Lock" />
+            <el-input
+              type="password"
+              v-model="password"
+              placeholder="登录密码"
+              :prefix-icon="Lock"
+            />
           </el-form-item>
 
           <el-button
@@ -34,26 +39,6 @@
           <div v-if="errorMsg" class="error-text">
             <el-icon><WarningFilled /></el-icon> {{ errorMsg }}
           </div>
-
-          <el-divider content-position="center" class="tips-divider">测试快捷入口</el-divider>
-
-          <div class="quick-login">
-            <el-tooltip content="点击填入：教练账号 (超级管理员)" placement="top">
-              <el-tag class="tag-btn" type="danger" effect="dark" @click="quickFill('coach_li')"
-                >教练: coach_li</el-tag
-              >
-            </el-tooltip>
-            <el-tooltip content="点击填入：队长账号 (管理员)" placement="top">
-              <el-tag class="tag-btn" type="warning" effect="dark" @click="quickFill('cap_wang')"
-                >队长: cap_wang</el-tag
-              >
-            </el-tooltip>
-            <el-tooltip content="点击填入：队员账号 (普通权限)" placement="top">
-              <el-tag class="tag-btn" effect="dark" @click="quickFill('stu_zhang')"
-                >队员: stu_zhang</el-tag
-              >
-            </el-tooltip>
-          </div>
         </el-form>
       </el-card>
       <div class="login-footer">© 2023 XCPC Training Team. All Rights Reserved.</div>
@@ -64,44 +49,37 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { loginApi } from '@/api/mock'
+import { loginApi } from '@/api'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 // 引入需要的图标
 import { User, Lock, Trophy, WarningFilled } from '@element-plus/icons-vue'
 
 const username = ref('')
+const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 const router = useRouter()
 const userStore = useUserStore()
 
-const quickFill = (name: string) => {
-  username.value = name
-  errorMsg.value = ''
-}
-
 const handleLogin = async () => {
-  errorMsg.value = ''
-  const inputName = username.value.trim()
-  if (!inputName) {
-    errorMsg.value = '请输入用户名'
-    return
-  }
-
   loading.value = true
   try {
-    const res = await loginApi(inputName)
-    if (res.success && res.user) {
-      userStore.setUser(res.user)
-      ElMessage.success({ message: `欢迎回来，${res.user.realName}`, plain: true })
-      await router.replace('/admin/overview')
-    } else {
-      errorMsg.value = res.message
-    }
-  } catch (e) {
-    console.log(e)
-    errorMsg.value = '系统繁忙，请稍后再试'
+    // 调用 API
+    const data = await loginApi(username.value, password.value) // data 被推断为 LoginResponse
+
+    // 1. 存储 Token (关键!)
+    localStorage.setItem('token', data.token)
+
+    // 2. 存储用户信息到 Pinia
+    userStore.setUser(data.user)
+
+    ElMessage.success(`欢迎回来，${data.user.realName}`)
+    await router.replace('/admin/overview')
+  } catch (err) {
+    // 错误处理已在 http.ts 的拦截器中统一处理了 (ElMessage.error)
+    // 这里只需要处理 loading 状态
+    console.error(err)
   } finally {
     loading.value = false
   }
