@@ -19,6 +19,7 @@ import TicketApply from '../views/contest/TicketApply.vue'
 import TicketManage from '../views/contest/TicketManage.vue'
 import ContestImport from '../views/contest/ContestImport.vue'
 import SystemSettings from '../views/system/SystemSettings.vue'
+import UserProfile from '../views/profile/UserProfile.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -80,6 +81,12 @@ const router = createRouter({
           redirect: '/admin/contest/apply',
           children: [
             {
+              path: 'history',
+              name: 'MyContestHistory',
+              component: () => import('@/views/contest/UserContestHistory.vue'),
+              meta: { title: '我的荣誉' },
+            },
+            {
               path: 'apply',
               name: 'ContestApply',
               component: TicketApply,
@@ -131,6 +138,12 @@ const router = createRouter({
               meta: { title: '设置' },
             },
           ],
+        },
+        {
+          path: 'profile',
+          name: 'UserProfile',
+          component: UserProfile,
+          meta: { title: '个人主页' },
         },
       ],
     },

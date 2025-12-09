@@ -41,26 +41,28 @@ export interface User {
   status: Status // 必填
 
   // 以下新增时不需要填，有默认值
+  avatar: string
   ojInfo: OjInfo
   problemNumber: number
   rating: number
   ratingInfo?: ratingInfo
-  lastMonthSolved?: number;
+  lastMonthSolved?: number
+  createdAt: string
 }
 
 // 定义查询参数接口
 export interface UserParams {
-  page?: number;
-  pageSize?: number;
-  realName?: string;
-  college?: string;
-  grade?: string;
-  gender?: string;
-  role?: string;
-  status?: string;
-  studentId?: string;
-  username?: string;
-  [key: string]: string | number | undefined; // 允许索引访问
+  page?: number
+  pageSize?: number
+  realName?: string
+  college?: string
+  grade?: string
+  gender?: string
+  role?: string
+  status?: string
+  studentId?: string
+  username?: string
+  [key: string]: string | number | undefined // 允许索引访问
 }
 
 // 4. API 返回结构 (为了替代 any)

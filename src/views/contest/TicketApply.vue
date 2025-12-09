@@ -75,20 +75,29 @@
         <el-form-item label="获奖凭证" prop="proofUrl">
           <el-upload
             ref="uploadRef"
-            class="avatar-uploader"
+            v-model:file-list="fileList"
             :action="uploadAction"
             :headers="uploadHeaders"
             name="file"
-            :show-file-list="false"
-            :limit="1"
+            list-type="picture-card"
+            :limit="5"
             :on-exceed="handleExceed"
             :on-success="handleUploadSuccess"
+            :on-remove="handleRemove"
+            :on-preview="handlePreview"
             :before-upload="beforeUpload"
           >
-            <img v-if="form.proofUrl" :src="form.proofUrl" class="proof-img" />
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            <el-icon><Plus /></el-icon>
           </el-upload>
-          <div class="upload-tip">支持 JPG/PNG, 大小不超过 2MB</div>
+
+          <el-dialog v-model="previewVisible">
+            <img w-full :src="previewImageUrl" alt="Preview Image" style="width: 100%" />
+          </el-dialog>
+
+          <div class="upload-tip">
+            XCPC 和 训练营 请上传 排名截图 和 参赛总人数截图 (支持多张，单张不超过
+            2MB)，普通奖项认定只上传证明即可
+          </div>
         </el-form-item>
 
         <el-form-item label="备注说明">
@@ -172,11 +181,10 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import {
   ElMessage,
-  genFileId,
+  type UploadUserFile,
   type FormInstance,
   type UploadInstance,
   type UploadProps,
-  type UploadRawFile,
 } from 'element-plus'
 import { createTicketApi, getMyTicketsApi } from '@/api/ticket'
 import { getLeaderboardApi } from '@/api/index' // 假设这里有获取赛季列表的接口，或者专门写一个 getSeasonApi
@@ -279,26 +287,34 @@ const contestOptions = [
 const contestTypeMap: Record<string, string> = {
   XCPC_FINAL: 'XCPC 决赛',
   XCPC_REGIONAL: 'XCPC 区域赛',
-  XCPC_PROVINCIAL: 'XCPC 省赛',
+  XCPC_NET: 'XCPC 网络赛',
   XCPC_INVITATIONAL: 'XCPC 邀请赛',
+  XCPC_PROVINCIAL: 'XCPC 省赛',
   XCPC_CAMPUS: 'XCPC 校赛',
-  CAMP: '集训队训练营',
+  XCPC_TRAINING: 'XCPC (院赛、训练赛)',
+  CAMP_NOWCODER_WINTER: '牛客寒假训练营(个人)',
+  CAMP_NOWCODER_SUMMER: '牛客暑假多校训练营(组队)',
+  CAMP_HDU_SPRING: '杭电春季训练营(个人)',
+  CAMP_HDU_SUMMER: '杭电暑假多校训练营(组队)',
   LANQIAO: '蓝桥杯',
   GPLT: '天梯赛',
   ASTAR: '百度之星',
   PAT: 'PAT等级认证',
   NCCCU: '计算机能力挑战赛',
-  OTHER: '其他比赛',
 }
 
 const awardLevelMap: Record<string, string> = {
-  NAT_1: '国家级一等奖 (金)',
-  NAT_2: '国家级二等奖 (银)',
-  NAT_3: '国家级三等奖 (铜)',
+  NAT_1: '国家级一等奖',
+  NAT_2: '国家级二等奖',
+  NAT_3: '国家级三等奖',
   PROV_1: '省级一等奖',
   PROV_2: '省级二等奖',
   PROV_3: '省级三等奖',
 }
+
+const fileList = ref<UploadUserFile[]>([]) // 存储文件列表
+const previewVisible = ref(false)
+const previewImageUrl = ref('')
 
 // --- 2. 格式化函数 ---
 
@@ -360,11 +376,15 @@ const rankRules = computed(() => {
 })
 
 // ... 上传逻辑保持不变 ...
-const handleUploadSuccess: UploadProps['onSuccess'] = (res) => {
+const handleUploadSuccess: UploadProps['onSuccess'] = (res, uploadFile) => {
   if (res.code === 200 || res.success) {
-    form.proofUrl = res.data.url || res.url
+    // 确保 fileList 里的当前文件有正确的 url 属性，方便预览
+    uploadFile.url = res.data.url || res.url
   } else {
     ElMessage.error('上传失败')
+    // 上传失败从列表中移除
+    const idx = fileList.value.indexOf(uploadFile)
+    if (idx !== -1) fileList.value.splice(idx, 1)
   }
 }
 
@@ -376,16 +396,8 @@ const beforeUpload: UploadProps['beforeUpload'] = (rawFile) => {
   return true
 }
 
-const handleExceed: UploadProps['onExceed'] = (files) => {
-  // 清除之前的文件
-  uploadRef.value!.clearFiles()
-  const file = files[0] as UploadRawFile
-  file.uid = genFileId()
-  // 手动触发上传
-  uploadRef.value!.handleStart(file)
-  // 如果是自动上传模式，handleStart 后会自动 submit，或者需要手动 submit
-  // 由于我们是 action="/api/upload"，它是自动的
-  uploadRef.value!.submit()
+const handleExceed: UploadProps['onExceed'] = () => {
+  ElMessage.warning('最多只能上传 5 张图片，请删除后重试')
 }
 
 const resetForm = () => {
@@ -393,33 +405,43 @@ const resetForm = () => {
   form.cascaderValue = []
   form.rank = 0
   form.totalParticipants = 0
+  fileList.value = [] // 🟢 清空文件列表
+}
+
+const handleRemove: UploadProps['onRemove'] = (uploadFile, uploadFiles) => {
+  console.log(uploadFile, uploadFiles)
+}
+
+const handlePreview: UploadProps['onPreview'] = (file) => {
+  previewImageUrl.value = file.url!
+  previewVisible.value = true
 }
 
 const fetchSeasons = async () => {
   try {
     // 1. 先获取后端的“当前赛季”作为终点
-    const res = await getLeaderboardApi(); 
-    const currentSeasonStr = res.season; // 例如 "2025-2026"
-    
+    const res = await getLeaderboardApi()
+    const currentSeasonStr = res.season // 例如 "2025-2026"
+
     // 2. 解析年份
     // 假设赛季格式固定为 YYYY-YYYY
-    const currentStartYear = parseInt(currentSeasonStr.split('-')[0] as string); // 2024
-    const targetStartYear = 2021; // 你要求的起始年份
-    
-    const list: string[] = [];
-    
+    const currentStartYear = parseInt(currentSeasonStr.split('-')[0] as string) // 2024
+    const targetStartYear = 2021 // 你要求的起始年份
+
+    const list: string[] = []
+
     // 3. 循环生成：从“当前年”倒序生成到 2021 年
     // 这样最新的赛季会在最上面
     for (let y = currentStartYear; y >= targetStartYear; y--) {
-      list.push(`${y}-${y + 1}`);
+      list.push(`${y}-${y + 1}`)
     }
-    
-    seasonList.value = list;
+
+    seasonList.value = list
 
     // 4. 默认选中当前赛季
-    if (!form.season) form.season = currentSeasonStr;
+    if (!form.season) form.season = currentSeasonStr
   } catch (e) {
-    console.error(e);
+    console.error(e)
   }
 }
 
@@ -435,6 +457,11 @@ const viewMyHistory = async () => {
 
 const submitForm = async () => {
   if (!formRef.value) return
+
+  form.proofUrl = fileList.value
+    .map((file) => file.url || (file.response as any)?.data?.url)
+    .filter((url) => url)
+    .join(',')
 
   await formRef.value.validate(async (valid) => {
     if (valid) {
@@ -496,46 +523,13 @@ onMounted(() => {
   align-items: center;
 }
 
-/* 🟢 核心修复开始 */
-.avatar-uploader {
-  /* 外层只负责占位，不负责具体样式 */
-  width: 120px;
-  height: 120px;
-  display: block;
-}
-
-/* 穿透修改 Element Plus 内部的点击区域 */
-.avatar-uploader :deep(.el-upload) {
-  width: 100%;
-  height: 100%;
-  border: 1px dashed #d9d9d9;
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--el-transition-duration-fast);
-
-  /* 让内部的内容居中 (图标/图片) */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.avatar-uploader :deep(.el-upload:hover) {
-  border-color: #409eff;
-}
-/* 🟢 核心修复结束 */
-
 .avatar-uploader-icon {
   font-size: 28px;
   color: #8c939d;
 }
-.proof-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+
 .upload-tip {
+  margin-left: 10px;
   font-size: 12px;
   color: #909399;
   margin-top: 8px;

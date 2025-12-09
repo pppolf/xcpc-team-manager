@@ -1,248 +1,260 @@
 <template>
   <el-drawer
     v-model="visible"
-    title="批量刷新任务"
+    title="批量刷新竞赛数据"
     size="50%"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
     destroy-on-close
   >
     <div class="drawer-content">
-      <div class="progress-box">
-        <div class="progress-info">
-          <span>当前进度: {{ processedCount }} / {{ totalCount }}</span>
-          <span v-if="isProcessing && currentName"
-            >正在刷新: <b>{{ currentName }}</b
-            >...</span
-          >
-          <span v-else-if="!isProcessing && processedCount > 0" class="done-text">刷新完成!</span>
+      <el-alert
+        title="操作说明"
+        type="info"
+        description="系统将依次爬取所有队员的 OJ 数据，更新总刷题量。此操作耗时较长，请保持窗口开启。"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 20px"
+      />
+
+      <div class="status-panel">
+        <div class="progress-circle">
+          <el-progress type="dashboard" :percentage="percentage" :status="status" />
         </div>
-        <el-progress
-          :text-inside="true"
-          :stroke-width="20"
-          :percentage="percentage"
-          :status="progressStatus"
-        />
+        <div class="status-text">
+          <div class="current-action" v-if="processing">
+            正在处理: <b>{{ currentTarget }}</b>
+          </div>
+          <div class="summary">
+            已完成: {{ successCount }} / {{ totalCount }}
+            <span v-if="failCount > 0" class="fail-text">(失败: {{ failCount }})</span>
+          </div>
+        </div>
       </div>
 
-      <div class="action-box">
-        <el-button
-          type="primary"
-          @click="startRefresh"
-          :disabled="isProcessing || totalCount === 0"
-          :loading="isFetchingList"
-        >
-          {{ hasStarted ? '重新开始' : '开始刷新' }}
-        </el-button>
-        <el-button @click="stopRefresh" type="danger" :disabled="!isProcessing">停止</el-button>
+      <el-divider />
+
+      <div class="log-window" ref="logWindowRef">
+        <div v-for="(log, index) in logs" :key="index" class="log-item" :class="log.type">
+          <span class="time">[{{ log.time }}]</span>
+          <span class="text">{{ log.message }}</span>
+          <div v-if="log.details && log.details.length" class="log-details">
+            <div v-for="(d, i) in log.details" :key="i">- {{ d }}</div>
+          </div>
+        </div>
       </div>
-
-      <el-divider content-position="left">执行日志</el-divider>
-
-      <el-table :data="logs" height="400" border stripe style="width: 100%">
-        <el-table-column prop="time" label="时间" width="100" />
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="status" label="状态" width="90">
-          <template #default="{ row }">
-            <el-tag v-if="row.warnings && row.warnings.length > 0" type="warning">警告</el-tag>
-            <el-tag v-else-if="row.status === 'success'" type="success">成功</el-tag>
-            <el-tag v-else type="danger">失败</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="message" label="结果详情" min-width="180">
-          <template #default="{ row }">
-            <div v-if="row.status === 'fail'" style="color: #f56c6c">
-              {{ row.message }}
-            </div>
-
-            <div v-else>
-              <span
-                v-if="row.increment > 0"
-                style="color: #67c23a; font-weight: bold; margin-right: 10px"
-              >
-                新增 +{{ row.increment }}
-              </span>
-              <span v-else style="color: #909399; margin-right: 10px">暂无新题</span>
-
-              <div
-                v-if="row.warnings && row.warnings.length > 0"
-                style="font-size: 12px; color: #e6a23c; margin-top: 4px"
-              >
-                <div v-for="(warn, idx) in row.warnings" :key="idx">
-                  <el-icon><Warning /></el-icon> {{ warn }}
-                </div>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
     </div>
+
+    <template #footer>
+      <div class="drawer-footer">
+        <el-button @click="handleClose" :disabled="processing">关闭</el-button>
+        <el-button type="primary" @click="startBatch" :loading="processing">
+          {{ processing ? '处理中...' : '开始执行' }}
+        </el-button>
+      </div>
+    </template>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { getRefreshTargetsApi, refreshUserSolvedApi } from '@/api/index'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Warning } from '@element-plus/icons-vue'
-import type { User } from '@/types/user'
+// 🟢 [修复] 引入 RefreshTarget 类型
+import type { RefreshTarget } from '@/types/api'
+
+interface RefreshResult {
+  previous: number
+  current: number
+  increment: number
+  errors?: string[] // 显式声明 errors 为可选数组
+}
 
 const visible = ref(false)
-const isProcessing = ref(false)
-const isFetchingList = ref(false)
-const hasStarted = ref(false)
-const shouldStop = ref(false)
-
-// 数据状态
-const targets = ref<User[]>([])
-const logs = ref<any[]>([])
-const processedCount = ref(0)
-const currentName = ref('')
+const processing = ref(false)
+const targets = ref<RefreshTarget[]>([])
+const currentIndex = ref(0)
+const successCount = ref(0)
+const failCount = ref(0)
+const logs = ref<Array<{ type: string; time: string; message: string; details?: string[] }>>([])
+const logWindowRef = ref<HTMLDivElement>()
 
 const totalCount = computed(() => targets.value.length)
 const percentage = computed(() => {
   if (totalCount.value === 0) return 0
-  return Math.floor((processedCount.value / totalCount.value) * 100)
+  return Math.floor((currentIndex.value / totalCount.value) * 100)
 })
-const progressStatus = computed(() => {
+const status = computed(() => {
+  if (failCount.value > 0 && !processing.value) return 'warning'
   if (percentage.value === 100) return 'success'
-  if (shouldStop.value) return 'exception'
   return ''
 })
-
-// 对外暴露的方法：打开抽屉
-const open = async () => {
-  visible.value = true
-  reset()
-  // 打开时自动获取名单
-  await fetchTargets()
-}
-
-const reset = () => {
-  logs.value = []
-  processedCount.value = 0
-  hasStarted.value = false
-  shouldStop.value = false
-  currentName.value = ''
-}
-
-// 1. 获取名单
-const fetchTargets = async () => {
-  isFetchingList.value = true
-  try {
-    targets.value = await getRefreshTargetsApi()
-  } catch (e) {
-    console.error(e)
-  } finally {
-    isFetchingList.value = false
+const currentTarget = computed(() => {
+  if (currentIndex.value < totalCount.value) {
+    return targets.value[currentIndex.value]?.realName
   }
-}
+  return '完成'
+})
 
-// 2. 辅助：延迟函数
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+const addLog = (
+  type: 'info' | 'success' | 'error' | 'warning',
+  message: string,
+  details?: string[],
+) => {
+  const now = new Date()
+  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`
+  logs.value.push({ type, time: timeStr, message, details })
 
-// 3. 开始刷新 (核心循环逻辑)
-const startRefresh = async () => {
-  if (targets.value.length === 0) {
-    ElMessage.warning('没有需要刷新的队员')
-    return
-  }
-
-  // 如果是重新开始，先清空
-  if (hasStarted.value && !isProcessing.value) {
-    reset()
-    await fetchTargets() // 重新拉取最新名单
-  }
-
-  isProcessing.value = true
-  hasStarted.value = true
-  shouldStop.value = false
-
-  // 🔴 循环执行
-  for (let i = 0; i < targets.value.length; i++) {
-    if (shouldStop.value) break
-    const user = targets.value[i] as User
-    currentName.value = user.realName
-
-    const nowTime = new Date().toLocaleTimeString()
-
-    try {
-      // 调用单人刷新接口
-      const res = await refreshUserSolvedApi(user._id as string)
-
-      // 记录成功日志
-      logs.value.unshift({
-        time: nowTime,
-        name: user.realName,
-        status: 'success',
-        increment: res.increment,
-        // 🔴 获取后端传回的 errors (后端字段叫 errors，我们这里叫 warnings 方便区分)
-        warnings: res.errors || [],
-        message: '刷新成功',
-      })
-    } catch (error: any) {
-      // 记录失败日志
-      logs.value.unshift({
-        time: nowTime,
-        name: user.realName,
-        status: 'fail',
-        increment: 0,
-        message: error.message || '请求超时或错误',
-      })
+  nextTick(() => {
+    if (logWindowRef.value) {
+      logWindowRef.value.scrollTop = logWindowRef.value.scrollHeight
     }
-
-    processedCount.value++
-
-    // 🔴 关键：前端控制延迟，防止封IP
-    if (i < targets.value.length - 1) {
-      await sleep(2000)
-    }
-  }
-
-  isProcessing.value = false
-  currentName.value = ''
-
-  if (!shouldStop.value) {
-    ElMessage.success('批量刷新全部完成！')
-  }
-}
-
-const stopRefresh = () => {
-  ElMessageBox.confirm('确定要停止刷新吗？已完成的任务将保留。', '提示', {
-    type: 'warning',
-  }).then(() => {
-    shouldStop.value = true
   })
 }
 
-// 暴露给父组件
+const open = async () => {
+  visible.value = true
+  // 重置状态
+  processing.value = false
+  currentIndex.value = 0
+  successCount.value = 0
+  failCount.value = 0
+  logs.value = []
+
+  try {
+    addLog('info', '正在获取待更新列表...')
+    const res = await getRefreshTargetsApi()
+    targets.value = res
+    addLog('success', `列表获取成功，共 ${res.length} 名队员`)
+  } catch (e: unknown) {
+    const err = e as Error
+    addLog('error', `列表获取失败: ${err.message}`)
+  }
+}
+
+const startBatch = async () => {
+  if (targets.value.length === 0) return
+  processing.value = true
+  currentIndex.value = 0
+  successCount.value = 0
+  failCount.value = 0
+
+  addLog('info', '=== 批量任务开始 ===')
+
+  for (const target of targets.value) {
+    try {
+      // 注意：这里是串行请求，防止并发过高导致 IP 被 OJ 封禁
+      const rawRes = await refreshUserSolvedApi(target._id)
+      // 🟢 [修复] 使用接口断言代替 any
+      const res = rawRes as unknown as RefreshResult
+
+      const warnings = res.errors || []
+
+      if (warnings.length > 0) {
+        addLog(
+          'warning',
+          `${target.realName}: 部分更新 (${res.increment > 0 ? '+' + res.increment : '无变化'})`,
+          warnings,
+        )
+      } else {
+        addLog(
+          'success',
+          `${target.realName}: 更新完成 (${res.increment > 0 ? '+' + res.increment : '无变化'})`,
+        )
+      }
+
+      successCount.value++
+    } catch (e: unknown) {
+      const err = e as Error
+      failCount.value++
+      addLog('error', `${target.realName}: 更新失败 - ${err.message}`)
+    } finally {
+      currentIndex.value++
+    }
+
+    // 3. 简单的延时，给 OJ 喘息时间 (1秒)
+    if (currentIndex.value < totalCount.value) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+
+  processing.value = false
+  addLog('info', `=== 任务结束: 成功 ${successCount.value}, 失败 ${failCount.value} ===`)
+}
+
+const handleClose = () => {
+  if (!processing.value) {
+    visible.value = false
+  }
+}
+
 defineExpose({ open })
 </script>
 
-<style scoped>
-.drawer-content {
-  padding: 0 20px;
-}
-.progress-box {
+<style scoped lang="scss">
+.status-panel {
+  display: flex;
+  align-items: center;
   margin-bottom: 20px;
-  background: #f5f7fa;
-  padding: 15px;
+  .progress-circle {
+    margin-right: 20px;
+  }
+  .status-text {
+    flex: 1;
+    .current-action {
+      font-size: 16px;
+      margin-bottom: 5px;
+      color: #303133;
+    }
+    .summary {
+      font-size: 14px;
+      color: #606266;
+    }
+    .fail-text {
+      color: #f56c6c;
+      margin-left: 5px;
+    }
+  }
+}
+
+.log-window {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  height: 300px;
+  overflow-y: auto;
+  padding: 10px;
   border-radius: 4px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+
+  .log-item {
+    margin-bottom: 4px;
+    &.info {
+      color: #9cdcfe;
+    }
+    &.success {
+      color: #6a9955;
+    }
+    &.warning {
+      color: #ce9178;
+    }
+    &.error {
+      color: #f44747;
+    }
+
+    .time {
+      color: #858585;
+      margin-right: 8px;
+    }
+    .log-details {
+      margin-left: 56px;
+      color: #808080;
+    }
+  }
 }
-.progress-info {
+
+.drawer-footer {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  font-size: 14px;
-  color: #606266;
-}
-.done-text {
-  color: #67c23a;
-  font-weight: bold;
-}
-.action-box {
-  margin-bottom: 20px;
-  display: flex;
-  gap: 10px;
+  justify-content: flex-end;
 }
 </style>

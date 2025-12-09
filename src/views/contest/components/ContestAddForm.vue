@@ -122,9 +122,9 @@ const form = reactive({
 
 // 普通奖项等级选项
 const awardChildren = [
-  { value: 'NAT_1', label: '国家级一等奖 (金)' },
-  { value: 'NAT_2', label: '国家级二等奖 (银)' },
-  { value: 'NAT_3', label: '国家级三等奖 (铜)' },
+  { value: 'NAT_1', label: '国家级一等奖' },
+  { value: 'NAT_2', label: '国家级二等奖' },
+  { value: 'NAT_3', label: '国家级三等奖' },
   { value: 'PROV_1', label: '省级一等奖' },
   { value: 'PROV_2', label: '省级二等奖' },
   { value: 'PROV_3', label: '省级三等奖' },

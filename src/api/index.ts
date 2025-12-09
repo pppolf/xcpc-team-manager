@@ -46,8 +46,23 @@ export const getUserProfileApi = () => {
 }
 
 export const getUserDetailApi = (id: string) => {
-  return http.get<User>(`/users/${id}`);
-};
+  return http.get<User>(`/users/${id}`)
+}
+
+/**
+ * 上传头像
+ * @param file 原生 File 对象
+ */
+export const uploadAvatarApi = (file: File) => {
+  const formData = new FormData()
+  formData.append('avatar', file)
+
+  return http.post<User>('/users/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+}
 
 // === 比赛/奖项 API ===
 

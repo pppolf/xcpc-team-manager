@@ -41,6 +41,7 @@
             <el-icon><Flag /></el-icon>
             <span>比赛管理</span>
           </template>
+          <el-menu-item index="/admin/contest/history">我的荣誉</el-menu-item>
           <el-menu-item index="/admin/contest/apply">奖项认定申请</el-menu-item>
           <el-menu-item index="/admin/contest/manage" v-if="userStore.isAdmin"
             >工单管理</el-menu-item
@@ -72,6 +73,11 @@
           </template>
           <el-menu-item index="/admin/system/settings">设置</el-menu-item>
         </el-sub-menu>
+
+        <el-menu-item index="/admin/profile">
+          <el-icon><User /></el-icon>
+          <span>个人主页</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -83,18 +89,29 @@
             <el-breadcrumb-item>{{ route.meta.title || '首页' }}</el-breadcrumb-item>
           </el-breadcrumb>
         </div>
+
         <div class="header-right">
-          <div class="user-info-box">
-            <el-avatar
-              :size="32"
-              src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
-            />
-            <span class="username">{{ userStore.userInfo?.realName }}</span>
-            <el-tag size="small" type="success" effect="dark" class="role-tag">{{
-              userStore.userInfo?.role
-            }}</el-tag>
-          </div>
-          <el-button link type="danger" @click="handleLogout">退出</el-button>
+          <el-dropdown trigger="click" @command="handleCommand">
+            <div class="user-info-box pointer">
+              <el-avatar :size="32" :src="userStore.userInfo?.avatar || defaultAvatar" />
+              <span class="username">{{ userStore.userInfo?.realName }}</span>
+              <el-tag size="small" type="success" effect="dark" class="role-tag">
+                {{ userStore.userInfo?.role }}
+              </el-tag>
+              <el-icon class="el-icon--right"><CaretBottom /></el-icon>
+            </div>
+
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">
+                  <el-icon><User /></el-icon>个人设置
+                </el-dropdown-item>
+                <el-dropdown-item divided command="logout">
+                  <el-icon><SwitchButton /></el-icon>退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </el-header>
 
@@ -113,7 +130,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-// 引入所有需要的图标
+// 🟢 引入新需要的图标：CaretBottom, SwitchButton, User, Setting
 import {
   Trophy,
   Odometer,
@@ -123,6 +140,10 @@ import {
   Medal,
   Histogram,
   Flag,
+  Setting,
+  User,
+  CaretBottom,
+  SwitchButton,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -132,6 +153,17 @@ const route = useRoute()
 
 // 激活菜单高亮逻辑
 const activeMenu = computed(() => route.path)
+const defaultAvatar = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'
+
+// 🟢 新增：处理下拉菜单指令
+const handleCommand = (command: string) => {
+  if (command === 'profile') {
+    // 跳转到我们刚才写的个人设置页
+    router.push('/admin/profile')
+  } else if (command === 'logout') {
+    handleLogout()
+  }
+}
 
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗?', '提示', {
@@ -190,10 +222,21 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 🟢 新增：鼠标手型，表明可点击 */
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background 0.3s;
 }
+/* 🟢 新增：鼠标悬停效果 */
+.user-info-box:hover {
+  background: #f5f7fa;
+}
+
 .username {
   font-size: 14px;
   font-weight: 500;
+  color: #333;
 }
 .fade-enter-active,
 .fade-leave-active {

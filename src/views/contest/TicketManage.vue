@@ -35,6 +35,14 @@
                 </el-tag>
                 <el-tag
                   size="small"
+                  effect="light"
+                  type="success"
+                  style="margin-left: 4px; transform: scale(0.9)"
+                >
+                  {{ row.season }}
+                </el-tag>
+                <el-tag
+                  size="small"
                   type="info"
                   effect="light"
                   style="margin-left: 4px; transform: scale(0.9)"
@@ -47,18 +55,61 @@
                 <el-tag size="small" effect="plain" :type="row.awardLevel ? '' : 'info'">
                   {{ getAwardText(row.awardLevel) || '无等级' }}
                 </el-tag>
+                <el-tag
+                  size="small"
+                  effect="light"
+                  type="success"
+                  style="margin-left: 4px; transform: scale(0.9)"
+                >
+                  {{ row.season }}
+                </el-tag>
               </div>
             </template>
           </el-table-column>
           <el-table-column label="凭证" width="100" align="center">
             <template #default="{ row }">
-              <el-image
-                style="width: 50px; height: 50px; border-radius: 4px"
-                :src="row.proofUrl"
-                :preview-src-list="[row.proofUrl]"
-                preview-teleported
-                fit="cover"
-              />
+              <div v-if="row.proofUrl" style="position: relative; display: inline-block">
+                <el-image
+                  style="width: 50px; height: 50px; border-radius: 4px; border: 1px solid #eee"
+                  :src="getImgList(row.proofUrl)[0]"
+                  :preview-src-list="getImgList(row.proofUrl)"
+                  preview-teleported
+                  fit="cover"
+                  hide-on-click-modal
+                >
+                  <template #error>
+                    <div
+                      style="
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        width: 100%;
+                        height: 100%;
+                        background: #f5f7fa;
+                        color: #909399;
+                      "
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
+                <div
+                  v-if="getImgList(row.proofUrl).length > 1"
+                  style="
+                    position: absolute;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    color: #fff;
+                    font-size: 10px;
+                    padding: 0 4px;
+                    border-radius: 4px 0 4px 0;
+                  "
+                >
+                  +{{ getImgList(row.proofUrl).length - 1 }}
+                </div>
+              </div>
+              <span v-else style="color: #909399; font-size: 12px">无</span>
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
@@ -105,12 +156,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
 // 🟢 修复：显式引入 ElMessageBox 和 ElMessage
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getTicketsApi, handleTicketApi } from '@/api/ticket'
 import ContestAddForm from './components/ContestAddForm.vue'
 import type { Ticket } from '@/types/ticket' // 引入类型
+import { Refresh, Picture } from '@element-plus/icons-vue' // 🟢 记得把 Picture 加进去
 
 const activeTab = ref('tickets')
 // 🟢 修复：指定类型
@@ -190,14 +241,19 @@ const getStatusText = (status: string) => {
 
 const getAwardText = (level: string) => {
   const map: Record<string, string> = {
-    NAT_1: '国一 (金)',
-    NAT_2: '国二 (银)',
-    NAT_3: '国三 (铜)',
-    PROV_1: '省一',
-    PROV_2: '省二',
-    PROV_3: '省三',
+    NAT_1: '国家级一等奖',
+    NAT_2: '国家级二等奖',
+    NAT_3: '国家级三等奖',
+    PROV_1: '省级一等奖',
+    PROV_2: '省级二等奖',
+    PROV_3: '省级三等奖',
   }
-  return map[level] || level
+  const pta: Record<string, string> = {
+    TOP: '顶级',
+    ADV: '甲级',
+    BAS: '乙级',
+  }
+  return map[level] || pta[level] || level
 }
 
 // 🟢 辅助函数：格式化比赛类型 (可选)
@@ -214,6 +270,12 @@ const formatContestType = (type: string) => {
   if (type.includes('HDU_SPRING')) return '杭电春季训练营'
   if (type.includes('HDU_SUMMER')) return '杭电暑假多校'
   return 'XCPC'
+}
+
+const getImgList = (urlStr: string) => {
+  if (!urlStr) return []
+  // 分割并过滤空字符串
+  return urlStr.split(',').filter((s) => s)
 }
 
 onMounted(() => {

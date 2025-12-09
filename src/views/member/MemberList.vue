@@ -426,7 +426,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import {
   getMembersApi,
   addMemberApi,
@@ -459,6 +459,12 @@ const pagination = reactive({
 })
 const batchDrawerRef = ref()
 const userStore = useUserStore()
+// 计算头像地址
+const avatarUrl = computed(() => {
+  const url = userStore.userInfo?.avatar
+  if (!url) return ''
+  return url
+})
 
 const filterForm = reactive<Record<string, string>>({
   username: '',
