@@ -2,6 +2,7 @@
 import http from '@/utils/http'
 import type { User, UserParams } from '@/types/user'
 import type { CrawlerBatchResult, PageResult, ContestsParam, RefreshTarget } from '@/types/api' // 引入刚才定义的类型
+import type { LeaderboardResponse } from '@/types/rating'
 
 // 1. 获取成员列表
 // 泛型指定为 User[]，那么返回值类型自动就是 Promise<User[]>
@@ -41,8 +42,8 @@ export const updateMemberApi = (id: string, user: Partial<User>) => {
 }
 
 export const getUserProfileApi = () => {
-  return http.get<User>('/users/profile');
-};
+  return http.get<User>('/users/profile')
+}
 
 // === 比赛/奖项 API ===
 
@@ -81,4 +82,10 @@ export const refreshAllMembersApi = () => {
 // 获取刷新目标列表
 export const getRefreshTargetsApi = () => {
   return http.get<RefreshTarget[]>('/crawler/targets')
+}
+
+// ========排行榜=======
+// 获取排行榜
+export const getLeaderboardApi = (season?: string) => {
+  return http.get<LeaderboardResponse>('/rating/leaderboard', { season })
 }

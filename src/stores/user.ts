@@ -22,7 +22,7 @@ export const useUserStore = defineStore('user', () => {
 
   const isAdmin = computed(() => {
     if (!userInfo.value) return false
-    const adminRoles = ['Teacher', 'Captain', 'Student-Coach']
+    const adminRoles = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach']
     return adminRoles.includes(userInfo.value.role)
   })
 

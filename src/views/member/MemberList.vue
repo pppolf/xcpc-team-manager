@@ -340,7 +340,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import BatchRefreshDrawer from './components/BatchRefreshDrawer.vue'
 
 // --- 常量定义 ---
-const roleOptions: Role[] = ['Teacher', 'Captain', 'Student-Coach', 'Member']
+const roleOptions: Role[] = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach', 'Member']
 const tsizeOptions: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
 
 // --- 状态定义 ---
@@ -418,6 +418,7 @@ const handleOpenBatchRefresh = () => {
 const getRoleType = (role: Role) => {
   if (role === 'Teacher') return 'danger'
   if (role === 'Captain') return 'warning'
+  if (role === 'Vice-Captain') return 'warning'
   if (role === 'Student-Coach') return 'primary'
   return 'info'
 }

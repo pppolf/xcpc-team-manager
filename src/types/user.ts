@@ -3,7 +3,7 @@
 // 1. 枚举类型
 export type Gender = '男' | '女'
 export type TShirtSize = 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL' | 'XXXXL'
-export type Role = 'Teacher' | 'Captain' | 'Student-Coach' | 'Member'
+export type Role = 'Teacher' | 'Captain' | 'Student-Coach' | 'Member' | 'Vice-Captain'
 export type Status = 'Active' | 'Retired'
 
 // 2. 子对象接口
