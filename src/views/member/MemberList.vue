@@ -341,7 +341,7 @@
       <div v-if="currentUser" class="user-profile">
         <div class="profile-header">
           <div class="header-left">
-            <el-avatar :size="64" :src="`https://api.multiavatar.com/${currentUser._id}.png`" />
+            <el-avatar :size="64" :src="currentUser.avatar" />
             <div class="header-info">
               <h2 class="real-name">
                 {{ currentUser.realName }}
@@ -459,12 +459,6 @@ const pagination = reactive({
 })
 const batchDrawerRef = ref()
 const userStore = useUserStore()
-// 计算头像地址
-const avatarUrl = computed(() => {
-  const url = userStore.userInfo?.avatar
-  if (!url) return ''
-  return url
-})
 
 const filterForm = reactive<Record<string, string>>({
   username: '',
