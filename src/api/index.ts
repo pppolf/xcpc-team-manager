@@ -45,6 +45,10 @@ export const getUserProfileApi = () => {
   return http.get<User>('/users/profile')
 }
 
+export const getUserDetailApi = (id: string) => {
+  return http.get<User>(`/users/${id}`);
+};
+
 // === 比赛/奖项 API ===
 
 // 录入比赛记录

@@ -19,7 +19,7 @@ export interface ratingInfo {
   contest?: number
   problem?: number
   legacy?: number
-  activeCoefficier: number
+  activeCoefficient: number
 }
 
 // 3. 完整的用户接口 (对应数据库)

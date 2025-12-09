@@ -17,6 +17,11 @@ export const forceSettleApi = () => {
 }
 
 // 修改密码
-export const updatePasswordApi = (data: any) => {
+export const updatePasswordApi = (data: {oldPassword: string, newPassword: string}) => {
   return http.post('/users/update-password', data) // 需要你在后端 User Controller 实现这个
 }
+
+// 管理员重置密码
+export const resetUserPasswordApi = (data: { userId: string, newPassword: string }) => {
+  return http.post('/users/reset-password', data);
+};

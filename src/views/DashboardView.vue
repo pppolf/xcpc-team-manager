@@ -31,7 +31,7 @@
           >
         </el-sub-menu>
 
-        <el-menu-item index="/admin/training">
+        <el-menu-item index="/admin/training" v-if="userStore.isAdmin">
           <el-icon><DataLine /></el-icon>
           <span>训练管理</span>
         </el-menu-item>
@@ -50,12 +50,12 @@
           >
         </el-sub-menu>
 
-        <el-menu-item index="/admin/notice">
+        <el-menu-item index="/admin/notice" v-if="userStore.isAdmin">
           <el-icon><Bell /></el-icon>
           <span>公告管理</span>
         </el-menu-item>
 
-        <el-menu-item index="/admin/honor">
+        <el-menu-item index="/admin/honor" v-if="userStore.isAdmin">
           <el-icon><Medal /></el-icon>
           <span>喜报管理</span>
         </el-menu-item>

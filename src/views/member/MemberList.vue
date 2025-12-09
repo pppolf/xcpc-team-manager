@@ -6,7 +6,7 @@
           <h3>队员花名册</h3>
           <span class="subtitle">管理所有队员信息、状态及竞赛数据</span>
         </div>
-        <div class="action-area">
+        <div class="action-area" v-if="userStore.isAdmin">
           <el-button type="warning" plain :icon="Refresh" @click="handleOpenBatchRefresh">
             批量刷新数据
           </el-button>
@@ -144,12 +144,21 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" fixed="right" align="center">
+        <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" :icon="Edit" @click="openDialog('edit', row)"
-              >详情</el-button
-            >
-            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="info" :icon="View" @click="handleView(row)"> 详情 </el-button>
+
+            <template v-if="userStore.isAdmin">
+              <el-button link type="primary" :icon="Edit" @click="openDialog('edit', row)">
+                编辑
+              </el-button>
+              <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">
+                删除
+              </el-button>
+              <el-button type="warning" link @click="handleResetPassword(row)">
+                重置密码
+              </el-button>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -318,7 +327,6 @@
           </el-tab-pane>
         </el-tabs>
       </el-form>
-
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogVisible = false">取 消</el-button>
@@ -328,26 +336,120 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="viewVisible" title="队员详细档案" width="600px" destroy-on-close>
+      <div v-if="currentUser" class="user-profile">
+        <div class="profile-header">
+          <div class="header-left">
+            <el-avatar :size="64" :src="`https://api.multiavatar.com/${currentUser._id}.png`" />
+            <div class="header-info">
+              <h2 class="real-name">
+                {{ currentUser.realName }}
+                <el-tag size="small" :type="getRoleType(currentUser.role)">{{
+                  currentUser.role
+                }}</el-tag>
+              </h2>
+              <p class="username">@{{ currentUser.username }}</p>
+            </div>
+          </div>
+          <div class="header-right">
+            <div class="rating-box">
+              <div class="label">Total Rating</div>
+              <div class="val">{{ currentUser.rating || 0 }}</div>
+            </div>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="学号">{{ currentUser.studentId }}</el-descriptions-item>
+          <el-descriptions-item label="学院">{{ currentUser.college }}</el-descriptions-item>
+          <el-descriptions-item label="专业">{{ currentUser.professional }}</el-descriptions-item>
+          <el-descriptions-item label="年级">{{ currentUser.grade }}</el-descriptions-item>
+          <el-descriptions-item label="性别">{{ currentUser.gender }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{ currentUser.phone }}</el-descriptions-item>
+          <el-descriptions-item label="邮箱" :span="2">{{
+            currentUser.email
+          }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="currentUser.status === 'Active' ? 'success' : 'info'" size="small">
+              {{ currentUser.status === 'Active' ? '现役' : '退役' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="活跃系数">
+            {{ currentUser.ratingInfo?.activeCoefficient || 1.0 }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <h4 style="margin-top: 20px; margin-bottom: 10px">积分构成</h4>
+        <el-descriptions :column="3" direction="vertical" border>
+          <el-descriptions-item label="比赛分 (Contest)">
+            <span style="color: #409eff; font-weight: bold">{{
+              currentUser.ratingInfo?.contest || 0
+            }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="刷题分 (Practice)">
+            <span style="color: #e6a23c; font-weight: bold">{{
+              currentUser.ratingInfo?.problem || 0
+            }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="历史继承 (Legacy)">
+            <span style="color: #909399">{{ currentUser.ratingInfo?.legacy || 0 }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <h4 style="margin-top: 20px; margin-bottom: 10px">OJ 账号绑定</h4>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="Codeforces">
+            {{ currentUser.ojInfo?.cf || '未绑定' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="AtCoder">
+            {{ currentUser.ojInfo?.at || '未绑定' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="牛客">
+            {{ currentUser.ojInfo?.nc || '未绑定' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="洛谷">
+            {{ currentUser.ojInfo?.lg || '未绑定' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="校内OJ">
+            {{ currentUser.ojInfo?.cwnuoj || '未绑定' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <el-button @click="viewVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
-import { getMembersApi, addMemberApi, deleteMemberApi, updateMemberApi } from '@/api'
+import {
+  getMembersApi,
+  addMemberApi,
+  deleteMemberApi,
+  updateMemberApi,
+  getUserDetailApi,
+} from '@/api'
 import type { User, Role, TShirtSize, UserParams } from '@/types/user'
-import { Search, Refresh, Plus, Edit, Delete, RefreshRight } from '@element-plus/icons-vue'
+import { Search, Refresh, Plus, Edit, Delete, RefreshRight, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import BatchRefreshDrawer from './components/BatchRefreshDrawer.vue'
+import { resetUserPasswordApi } from '@/api/config'
+import { useUserStore } from '@/stores/user'
 
-// --- 常量定义 ---
 const roleOptions: Role[] = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach', 'Member']
 const tsizeOptions: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
 
-// --- 状态定义 ---
 const loading = ref(false)
 const submitting = ref(false)
 const tableData = ref<User[]>([])
 const dialogVisible = ref(false)
+const viewVisible = ref(false)
+const currentUser = ref<User | null>(null)
 const dialogType = ref<'add' | 'edit'>('add')
 const formRef = ref<FormInstance>()
 const pagination = reactive({
@@ -356,8 +458,8 @@ const pagination = reactive({
   total: 0,
 })
 const batchDrawerRef = ref()
+const userStore = useUserStore()
 
-// 筛选表单数据
 const filterForm = reactive<Record<string, string>>({
   username: '',
   realName: '',
@@ -368,7 +470,6 @@ const filterForm = reactive<Record<string, string>>({
   status: '',
 })
 
-// 初始空表单 (ProblemNumber 和 Rating 默认为 0)
 const initialForm: User = {
   username: '',
   realName: '',
@@ -390,29 +491,62 @@ const initialForm: User = {
 
 const form = reactive<User>(JSON.parse(JSON.stringify(initialForm)))
 
-// --- 校验规则 (Strict!) ---
 const rules = reactive<FormRules<User>>({
   username: [{ required: true, message: '必须填写登录账号', trigger: 'blur' }],
-  // 密码在新增时若为空后端可设默认值，但如果要必填则加 required
   role: [{ required: true, message: '必须选择角色', trigger: 'change' }],
   status: [{ required: true, message: '必须选择状态', trigger: 'change' }],
-
   realName: [{ required: true, message: '真实姓名必填', trigger: 'blur' }],
   gender: [{ required: true, message: '性别必选', trigger: 'change' }],
   tsize: [{ required: true, message: 'T恤尺寸必选', trigger: 'change' }],
   idCard: [{ required: true, message: '身份证号必填', trigger: 'blur' }],
   phone: [{ required: true, message: '手机号必填', trigger: 'blur' }],
   email: [{ required: true, message: '邮箱必填', trigger: 'blur' }],
-
   studentId: [{ required: true, message: '学号必填', trigger: 'blur' }],
   grade: [{ required: true, message: '年级必填', trigger: 'blur' }],
   college: [{ required: true, message: '学院必填', trigger: 'blur' }],
   professional: [{ required: true, message: '专业必填', trigger: 'blur' }],
 })
 
-// --- 方法 ---
 const handleOpenBatchRefresh = () => {
   batchDrawerRef.value?.open()
+}
+
+// 🟢 [修复] 查看详情逻辑
+const handleView = async (row: User) => {
+  try {
+    const res = await getUserDetailApi(row._id!)
+    currentUser.value = res
+    viewVisible.value = true
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('获取详情失败')
+  }
+}
+
+// 🟢 [修复] 类型改为 User
+const handleResetPassword = async (row: User) => {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `请输入为 "${row.realName}" 设置的新密码：`,
+      '重置密码 (管理员)',
+      {
+        confirmButtonText: '确定重置',
+        cancelButtonText: '取消',
+        inputType: 'text',
+        inputPlaceholder: '例如: 123456',
+        inputValidator: (val) => {
+          if (!val || val.length < 6) return '密码长度至少6位'
+          return true
+        },
+      },
+    )
+    if (row._id) {
+      await resetUserPasswordApi({ userId: row._id, newPassword: value })
+      ElMessage.success(`成功将 ${row.realName} 的密码重置`)
+    }
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('重置失败')
+  }
 }
 
 const getRoleType = (role: Role) => {
@@ -423,15 +557,11 @@ const getRoleType = (role: Role) => {
   return 'info'
 }
 
-// 修改 fetchData 方法
 const fetchData = async () => {
   loading.value = true
-
-  // 组装参数：筛选条件 + 分页条件
   const params: UserParams = {
     page: pagination.page,
     pageSize: pagination.pageSize,
-    // 过滤掉空字符串参数
     ...(filterForm.username && { username: filterForm.username }),
     ...(filterForm.realName && { realName: filterForm.realName }),
     ...(filterForm.college && { college: filterForm.college }),
@@ -440,11 +570,10 @@ const fetchData = async () => {
     ...(filterForm.role && { role: filterForm.role }),
     ...(filterForm.status && { status: filterForm.status }),
   }
-
   try {
     const res = await getMembersApi(params)
-    tableData.value = res.list // 数据列表
-    pagination.total = res.total // 总条数
+    tableData.value = res.list
+    pagination.total = res.total
   } catch (error) {
     console.error(error)
   } finally {
@@ -453,12 +582,11 @@ const fetchData = async () => {
 }
 
 const handleSearch = () => {
-  pagination.page = 1 // 搜索时必须重置到第一页，防止页码溢出
+  pagination.page = 1
   fetchData()
 }
 
 const handleReset = () => {
-  // 清空筛选表单
   Object.keys(filterForm).forEach((key) => (filterForm[key] = ''))
   pagination.page = 1
   pagination.pageSize = 10
@@ -467,21 +595,19 @@ const handleReset = () => {
 
 const handleSizeChange = (val: number) => {
   pagination.pageSize = val
-  fetchData() // 重新加载
+  fetchData()
 }
 
 const handlePageChange = (val: number) => {
   pagination.page = val
-  fetchData() // 重新加载
+  fetchData()
 }
 
 const openDialog = (type: 'add' | 'edit', row?: User) => {
   dialogType.value = type
   dialogVisible.value = true
-
   if (type === 'add') {
     Object.assign(form, JSON.parse(JSON.stringify(initialForm)))
-    // 新增时，强制重置统计数据为 0 (虽然 Mock 也会重置，但前端保持一致更好)
     form.rating = 0
     form.problemNumber = 0
     delete form._id
@@ -492,9 +618,9 @@ const openDialog = (type: 'add' | 'edit', row?: User) => {
   }
 }
 
+// 🟢 [修复] 移除错误的 return 语句
 const submitForm = async () => {
   if (!formRef.value) return
-
   await formRef.value.validate(async (valid) => {
     if (valid) {
       submitting.value = true
@@ -505,11 +631,10 @@ const submitForm = async () => {
         } else {
           const id = form._id
           if (!id) {
-            ElMessage.error('编辑失败，无法获得用户 ID')
-            return
+            ElMessage.error('无 ID')
+            return // 这里的 return 在 catch 外面是可以的，或者抛出异常
           }
-          const { ...updateDate } = form
-          await updateMemberApi(id, updateDate)
+          await updateMemberApi(id, form)
           ElMessage.success('修改已保存')
         }
         dialogVisible.value = false
@@ -520,19 +645,20 @@ const submitForm = async () => {
         submitting.value = false
       }
     } else {
-      ElMessage.error('请检查表单中未填写的必填项')
+      ElMessage.error('请检查必填项')
+      // 删除了这里的 return
     }
   })
 }
 
 const handleDelete = (row: User) => {
-  ElMessageBox.confirm(`确定要删除 ${row.realName} 吗?`, '警告', {
-    type: 'warning',
-  }).then(async () => {
-    await deleteMemberApi(row.studentId)
-    ElMessage.success('删除成功')
-    fetchData()
-  })
+  ElMessageBox.confirm(`确定要删除 ${row.realName} 吗?`, '警告', { type: 'warning' }).then(
+    async () => {
+      await deleteMemberApi(row.studentId)
+      ElMessage.success('删除成功')
+      fetchData()
+    },
+  )
 }
 
 onMounted(() => {
@@ -543,11 +669,9 @@ onMounted(() => {
 <style scoped lang="scss">
 .member-list-container {
   padding: 0;
-
   .filter-card {
     margin-bottom: 16px;
     border: none;
-
     .filter-header {
       display: flex;
       justify-content: space-between;
@@ -555,7 +679,6 @@ onMounted(() => {
       margin-bottom: 20px;
       border-bottom: 1px solid #f0f0f0;
       padding-bottom: 15px;
-
       h3 {
         margin: 0;
         font-size: 18px;
@@ -567,7 +690,6 @@ onMounted(() => {
         margin-left: 10px;
       }
     }
-
     .filter-form {
       .btn-col {
         display: flex;
@@ -575,14 +697,12 @@ onMounted(() => {
       }
     }
   }
-
   .table-card {
     border: none;
     .name-text {
       font-weight: 600;
       color: #303133;
     }
-
     .info-cell {
       .info-row {
         display: flex;
@@ -604,7 +724,6 @@ onMounted(() => {
         }
       }
     }
-
     .rating-num {
       font-weight: bold;
       color: #67c23a;
@@ -618,11 +737,55 @@ onMounted(() => {
       color: #909399;
     }
   }
-
   .pagination-wrapper {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
+  }
+}
+
+/* 详情弹窗样式 */
+.user-profile {
+  .profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      .real-name {
+        margin: 0;
+        font-size: 20px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .username {
+        margin: 4px 0 0 0;
+        color: #909399;
+        font-size: 14px;
+      }
+    }
+    .header-right {
+      .rating-box {
+        text-align: right;
+        background: #f0f9eb;
+        padding: 10px 20px;
+        border-radius: 8px;
+        color: #67c23a;
+        .label {
+          font-size: 12px;
+          opacity: 0.8;
+        }
+        .val {
+          font-size: 24px;
+          font-weight: 800;
+        }
+      }
+    }
   }
 }
 
