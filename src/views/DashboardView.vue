@@ -36,9 +36,19 @@
           <span>训练管理</span>
         </el-menu-item>
 
-        <el-menu-item index="/admin/contest">
-          <el-icon><Flag /></el-icon> <span>比赛管理</span>
-        </el-menu-item>
+        <el-sub-menu index="/admin/contest">
+          <template #title>
+            <el-icon><Flag /></el-icon>
+            <span>比赛管理</span>
+          </template>
+          <el-menu-item index="/admin/contest/apply">奖项认定申请</el-menu-item>
+          <el-menu-item index="/admin/contest/manage" v-if="userStore.isAdmin"
+            >工单管理</el-menu-item
+          >
+          <el-menu-item index="/admin/contest/import" v-if="userStore.isAdmin"
+            >批量导入</el-menu-item
+          >
+        </el-sub-menu>
 
         <el-menu-item index="/admin/notice">
           <el-icon><Bell /></el-icon>
@@ -54,6 +64,14 @@
           <el-icon><Histogram /></el-icon>
           <span>排行榜</span>
         </el-menu-item>
+
+        <el-sub-menu index="/admin/system">
+          <template #title>
+            <el-icon><Setting /></el-icon>
+            <span>系统管理</span>
+          </template>
+          <el-menu-item index="/admin/system/settings">设置</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 

@@ -12,10 +12,13 @@ import Overview from '../views/dashboard/OverView.vue'
 import MemberList from '../views/member/MemberList.vue'
 import MemberImport from '../views/member/MemberImport.vue' // 记得创建这个文件
 import TrainingList from '../views/training/TrainingList.vue'
-import ContestList from '../views/contest/ContestList.vue'
 import NoticeList from '../views/notice/NoticeList.vue'
 import HonorList from '../views/honor/HonorList.vue'
 import RankList from '../views/rank/RankList.vue'
+import TicketApply from '../views/contest/TicketApply.vue'
+import TicketManage from '../views/contest/TicketManage.vue'
+import ContestImport from '../views/contest/ContestImport.vue'
+import SystemSettings from '../views/system/SystemSettings.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -74,8 +77,27 @@ const router = createRouter({
         {
           path: 'contest',
           name: 'Contest',
-          component: ContestList,
-          meta: { title: '比赛管理' },
+          redirect: '/admin/contest/apply',
+          children: [
+            {
+              path: 'apply',
+              name: 'ContestApply',
+              component: TicketApply,
+              meta: { title: '奖项认定申请' },
+            },
+            {
+              path: 'manage',
+              name: 'ContestManage',
+              component: TicketManage,
+              meta: { title: '工单管理' },
+            },
+            {
+              path: 'import',
+              name: 'ContestImport',
+              component: ContestImport,
+              meta: { title: '批量导入' },
+            },
+          ],
         },
         // 5. 公告管理
         {
@@ -97,6 +119,18 @@ const router = createRouter({
           name: 'Rank',
           component: RankList,
           meta: { title: '排行榜' },
+        },
+        {
+          path: 'system',
+          redirect: '/admin/system/settings',
+          children: [
+            {
+              path: 'settings',
+              name: 'SystemSettings',
+              component: SystemSettings,
+              meta: { title: '设置' },
+            },
+          ],
         },
       ],
     },
