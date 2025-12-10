@@ -264,7 +264,7 @@ const handleForceSettle = async () => {
     await forceSettleApi()
     ElMessage.success('结算指令已发送')
   } catch (e) {
-    ElMessage.error(`系统错误: ${e}`)
+    ElMessage.info(`取消: ${e}`)
   }
 }
 
@@ -274,7 +274,7 @@ const handleRecalculate = async () => {
     refreshAllMembersApi()
     ElMessage.success('任务已在后台启动')
   } catch (e) {
-    ElMessage.error(`系统错误: ${e}`)
+    ElMessage.info(`取消: ${e}`)
   }
 }
 

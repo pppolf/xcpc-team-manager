@@ -161,6 +161,30 @@
                 <span class="label">所属赛季：</span>
                 <span class="value">{{ item.season }}</span>
               </div>
+
+              <div class="info-item" v-if="item.proofUrl">
+                <span class="label">申请凭证：</span>
+                <div class="proof-wrapper">
+                  <el-image
+                    class="history-proof-img"
+                    :src="getImgList(item.proofUrl)[0]"
+                    :preview-src-list="getImgList(item.proofUrl)"
+                    preview-teleported
+                    fit="cover"
+                    hide-on-click-modal
+                  >
+                    <template #error>
+                      <div class="img-error">
+                        <el-icon><Picture /></el-icon>
+                      </div>
+                    </template>
+                  </el-image>
+
+                  <div v-if="getImgList(item.proofUrl).length > 1" class="more-badge">
+                    +{{ getImgList(item.proofUrl).length - 1 }}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div v-if="item.status === 'Rejected'" class="reject-box">
@@ -310,6 +334,9 @@ const awardLevelMap: Record<string, string> = {
   PROV_1: '省级一等奖',
   PROV_2: '省级二等奖',
   PROV_3: '省级三等奖',
+  TOP: '顶级',
+  ADV: '甲级',
+  BAS: '乙级',
 }
 
 const fileList = ref<UploadUserFile[]>([]) // 存储文件列表
@@ -405,6 +432,7 @@ const resetForm = () => {
   form.cascaderValue = []
   form.rank = 0
   form.totalParticipants = 0
+  form.description = ''
   fileList.value = [] // 🟢 清空文件列表
 }
 
@@ -448,11 +476,16 @@ const fetchSeasons = async () => {
 const viewMyHistory = async () => {
   historyVisible.value = true
   try {
-    const res = await getMyTicketsApi()
+    const res = await getMyTicketsApi({ scope: 'me' })
     myTickets.value = res
   } catch (error) {
     console.error(error)
   }
+}
+
+const getImgList = (urlStr: string) => {
+  if (!urlStr) return []
+  return urlStr.split(',').filter((s) => s)
 }
 
 const submitForm = async () => {
@@ -583,14 +616,18 @@ onMounted(() => {
     font-size: 14px;
     color: #606266;
 
+    /* 修改 .info-item 的样式 */
     .info-item {
       display: flex;
-      align-items: center;
+      align-items: center; /* 🟢 关键：改成 center，文字就会垂直居中 */
+      margin-bottom: 8px;
 
       .label {
         color: #909399;
         margin-right: 8px;
-        min-width: 70px; /* 对齐标签 */
+        min-width: 70px;
+        /* 🔴 如果你之前加了 margin-top: 4px，请在这里删掉或设为 0 */
+        margin-top: 0;
       }
 
       .value {
@@ -624,6 +661,56 @@ onMounted(() => {
       line-height: 1.4;
       font-weight: 500;
     }
+  }
+}
+/* 凭证图片容器 */
+.proof-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e4e7ed;
+  vertical-align: middle;
+  .history-proof-img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* +N 角标样式 */
+  .more-badge {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-top-left-radius: 6px;
+    line-height: 1.2;
+  }
+
+  .img-error {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background: #f5f7fa;
+    color: #909399;
+  }
+}
+
+/* 调整一下 .info-item 让图片能对齐 */
+.info-item {
+  /* 如果之前的 align-items 是 center，图片会被压扁，改成 flex-start */
+  align-items: flex-start !important;
+  margin-bottom: 8px;
+
+  .label {
+    margin-top: 4px; /* 让文字标签稍微下沉，对齐图片顶部 */
   }
 }
 </style>

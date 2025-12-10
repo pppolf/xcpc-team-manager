@@ -77,9 +77,9 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="contestDate" label="认定时间" width="120" sortable>
+        <el-table-column prop="contestDate" label="认定时间" min-width="80" sortable>
           <template #default="{ row }">
-            {{ new Date(row.contestDate).toLocaleDateString() }}
+            {{ formatDate(row.contestDate) }}
           </template>
         </el-table-column>
 
@@ -117,6 +117,20 @@
             <span class="score-text">+{{ row.rawScore }}</span>
           </template>
         </el-table-column>
+
+        <el-table-column
+          label="操作"
+          width="100"
+          fixed="right"
+          align="center"
+          v-if="userStore.isAdmin"
+        >
+          <template #default="{ row }">
+            <el-button type="danger" link icon="Delete" @click="handleDelete(row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
 
       <el-empty v-if="!loading && tableData.length === 0" description="暂无生效的积分记录" />
@@ -128,7 +142,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserContestsApi, type ContestRecord } from '@/api/contest'
-import { getMembersApi } from '@/api/index' // 复用已有的成员列表接口
+import { deleteContestRecordApi, getMembersApi } from '@/api/index' // 复用已有的成员列表接口
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -151,6 +166,45 @@ const uniqueSeasons = computed(() => {
 })
 
 // --- 核心逻辑 ---
+
+// 格式化时间
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', { hour12: false })
+}
+
+const handleDelete = (row: any) => {
+  console.log(row)
+  ElMessageBox.confirm(
+    `确定要删除这条 "${row.name}" 的记录吗？删除后该用户的积分将自动重新计算。`,
+    '高危操作警告',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger',
+    },
+  )
+    .then(async () => {
+      try {
+        loading.value = true
+        await deleteContestRecordApi(row._id)
+        ElMessage.success('删除成功，积分已重算')
+
+        // 刷新列表 (如果当前是在看别人，记得传 targetUserId，否则传自己)
+        const uid = row.userId
+        loadData(uid)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        loading.value = false
+      }
+    })
+    .catch(() => {
+      // 取消删除
+    })
+}
 
 // 加载数据
 const loadData = async (userId: string) => {
@@ -198,7 +252,7 @@ const resetToMe = () => {
 const initMyData = () => {
   const myId = userStore.userInfo?._id
   if (myId) {
-    searchUserId.value = myId // 如果是管理员，让下拉框显示自己
+    searchUserId.value = myId // 让下拉框显示自己
     targetUserInfo.value = userStore.userInfo
     // 初始化下拉框选项包含自己，防止显示ID
     memberOptions.value = [userStore.userInfo]

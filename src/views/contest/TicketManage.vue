@@ -66,6 +66,14 @@
               </div>
             </template>
           </el-table-column>
+          <el-table-column prop="adminComment" label="审核信息" show-overflow-tooltip>
+            <template #default="{ row }">
+              <div v-if="row.adminComment">
+                {{ row.adminComment }}
+              </div>
+              <div v-else>等待审核</div>
+            </template>
+          </el-table-column>
           <el-table-column label="凭证" width="100" align="center">
             <template #default="{ row }">
               <div v-if="row.proofUrl" style="position: relative; display: inline-block">

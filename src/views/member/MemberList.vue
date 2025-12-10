@@ -65,7 +65,7 @@
           <el-col :xs="12" :sm="6" :md="4" :lg="4">
             <el-form-item label="角色">
               <el-select v-model="filterForm.role" placeholder="全部" clearable>
-                <el-option v-for="r in roleOptions" :key="r" :label="r" :value="r" />
+                <el-option v-for="r in roleOptions" :key="r" :label="formatRole(r)" :value="r" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -85,6 +85,12 @@
         <el-table-column prop="realName" label="姓名" width="100" fixed>
           <template #default="{ row }">
             <span class="name-text">{{ row.realName }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="avatar" width="100" label="头像" fixed>
+          <template #default="{ row }">
+            <el-avatar :src="row.avatar" v-if="row.avatar" />
+            <el-avatar v-else> {{ row.realName[0] }} </el-avatar>
           </template>
         </el-table-column>
 
@@ -116,7 +122,7 @@
 
         <el-table-column prop="role" label="角色" min-width="80">
           <template #default="{ row }">
-            <el-tag :type="getRoleType(row.role)" effect="light">{{ row.role }}</el-tag>
+            <el-tag :type="getRoleType(row.role)" effect="light">{{ formatRole(row.role) }}</el-tag>
           </template>
         </el-table-column>
 
@@ -341,12 +347,15 @@
       <div v-if="currentUser" class="user-profile">
         <div class="profile-header">
           <div class="header-left">
-            <el-avatar :size="64" :src="currentUser.avatar" />
+            <el-avatar :size="64" v-if="currentUser.avatar" :src="currentUser.avatar" />
+            <el-avatar :size="64" style="font-size: 22px" v-else>{{
+              currentUser.realName.charAt(0)
+            }}</el-avatar>
             <div class="header-info">
               <h2 class="real-name">
                 {{ currentUser.realName }}
                 <el-tag size="small" :type="getRoleType(currentUser.role)">{{
-                  currentUser.role
+                  formatRole(currentUser.role)
                 }}</el-tag>
               </h2>
               <p class="username">@{{ currentUser.username }}</p>
@@ -441,7 +450,7 @@ import BatchRefreshDrawer from './components/BatchRefreshDrawer.vue'
 import { resetUserPasswordApi } from '@/api/config'
 import { useUserStore } from '@/stores/user'
 
-const roleOptions: Role[] = ['Teacher', 'Captain', 'Vice-Captain', 'Student-Coach', 'Member']
+const roleOptions: Role[] = ['Captain', 'Vice-Captain', 'Student-Coach', 'Member']
 const tsizeOptions: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
 
 const loading = ref(false)
@@ -620,7 +629,7 @@ const openDialog = (type: 'add' | 'edit', row?: User) => {
   }
 }
 
-// 🟢 [修复] 移除错误的 return 语句
+// 移除错误的 return 语句
 const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
@@ -661,6 +670,18 @@ const handleDelete = (row: User) => {
       fetchData()
     },
   )
+}
+
+// 角色转中文
+const formatRole = (role: string) => {
+  const map: Record<string, string> = {
+    Teacher: '指导教师',
+    Member: '队员',
+    Captain: '队长',
+    'Vice-Captain': '副队长',
+    'Student-Coach': '学生教练',
+  }
+  return map[role] || role
 }
 
 onMounted(() => {

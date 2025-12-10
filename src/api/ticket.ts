@@ -12,9 +12,9 @@ export const getTicketsApi = (params?: { status?: string }) => {
 }
 
 // 获取我的工单记录
-export const getMyTicketsApi = () => {
+export const getMyTicketsApi = (params?: { scope?: string }) => {
   // 复用列表接口，后端会根据角色自动过滤
-  return http.get<Ticket[]>('/tickets')
+  return http.get<Ticket[]>('/tickets', params)
 }
 
 // 审批工单

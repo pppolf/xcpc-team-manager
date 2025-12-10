@@ -91,11 +91,9 @@ export const refreshUserSolvedApi = (userId: string) => {
   })
 }
 
-// 刷新全队刷题数
+// 刷新全队比赛Rating和赛季Rating
 export const refreshAllMembersApi = () => {
-  // 注意：这个请求可能会很慢（假设30人 * 2秒 = 60秒），需要前端 axios timeout 设置得足够长
-  // 或者后端改成异步任务，这里我们暂时同步等待
-  return http.post<CrawlerBatchResult>('/crawler/refresh-all', {}, { timeout: 150000 }) // 设置 2分钟超时
+  return http.post<CrawlerBatchResult>('/crawler/refresh-all', {}) // 设置 2分钟超时
 }
 
 // 获取刷新目标列表
