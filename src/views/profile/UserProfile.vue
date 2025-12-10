@@ -22,7 +22,7 @@
             <el-icon class="is-loading"><Loading /></el-icon>
           </div>
         </el-upload>
-        <div class="tip">点击图片修改头像 (支持 JPG/PNG, 小于 2MB)</div>
+        <div class="tip">点击图片修改头像 (支持 image/ 类型, 小于 2MB)</div>
       </div>
 
       <el-divider />
@@ -38,7 +38,7 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="注册时间">
-            {{ formatDate(userInfo.createdAt) }}
+            {{ formatDate(userInfo.createdAt || '') }}
           </el-descriptions-item>
           <el-descriptions-item label="当前状态">
             <el-tag size="small" type="success" v-if="userInfo.status === 'Active'">现役</el-tag>
@@ -163,7 +163,11 @@ const formatDate = (dateStr: string) => {
 
 // 1. 上传前校验
 const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-  const isImage = rawFile.type === 'image/jpeg' || rawFile.type === 'image/png'
+  const isImage =
+    rawFile.type === 'image/jpeg' ||
+    rawFile.type === 'image/png' ||
+    rawFile.type === 'image/gif' ||
+    rawFile.type === 'image/webp'
   const isLt2M = rawFile.size / 1024 / 1024 < 2
 
   if (!isImage) {

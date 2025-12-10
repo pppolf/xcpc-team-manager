@@ -373,8 +373,8 @@
             currentUser.email
           }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="currentUser.status === 'Active' ? 'success' : 'info'" size="small">
-              {{ currentUser.status === 'Active' ? '现役' : '退役' }}
+            <el-tag :type="currentUser.status === 'Active' ? 'success' : 'primary'" size="small">
+              {{ currentUser.status === 'Active' ? '现役' : '⭐已退役' }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="活跃系数">
@@ -426,7 +426,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import {
   getMembersApi,
   addMemberApi,
@@ -473,6 +473,7 @@ const filterForm = reactive<Record<string, string>>({
 const initialForm: User = {
   username: '',
   realName: '',
+  avatar: '',
   gender: '男',
   college: '',
   professional: '',
@@ -486,6 +487,7 @@ const initialForm: User = {
   status: 'Active',
   rating: 0,
   problemNumber: 0,
+  createdAt: '',
   ojInfo: { cf: '', at: '', nc: '', lg: '', cwnuoj: '' },
 }
 

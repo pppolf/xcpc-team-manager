@@ -47,7 +47,7 @@ export interface User {
   rating: number
   ratingInfo?: ratingInfo
   lastMonthSolved?: number
-  createdAt: string
+  createdAt?: string
 }
 
 // 定义查询参数接口

@@ -195,6 +195,7 @@ const parseData = async () => {
       username: studentId, // 账号就是学号
       password: '123456', // 默认密码
       realName,
+      avatar: '',
       gender: (genderStr === '女' ? '女' : '男') as Gender,
       college,
       professional,
