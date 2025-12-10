@@ -10,12 +10,12 @@
             </el-tag>
           </div>
 
-          <div class="admin-actions" v-if="userStore.isAdmin">
+          <div class="admin-actions">
             <el-select
               v-model="searchUserId"
               filterable
               remote
-              placeholder="管理员查询：输入姓名或学号"
+              placeholder="查询其他用户：输入姓名或学号"
               :remote-method="handleSearchMember"
               :loading="searchLoading"
               style="width: 240px"
@@ -166,7 +166,7 @@ const loadData = async (userId: string) => {
   }
 }
 
-// 管理员：远程搜索成员
+// 远程搜索成员
 const handleSearchMember = async (query: string) => {
   if (!query) return
   searchLoading.value = true
@@ -181,7 +181,7 @@ const handleSearchMember = async (query: string) => {
   }
 }
 
-// 管理员：切换查看对象
+// 切换查看对象
 const handleUserSwitch = (val: string) => {
   // 找到选中的用户信息用于展示
   const selected = memberOptions.value.find((m) => m._id === val)
@@ -189,7 +189,7 @@ const handleUserSwitch = (val: string) => {
   loadData(val)
 }
 
-// 管理员：重置回看自己
+// 重置回看自己
 const resetToMe = () => {
   initMyData()
 }
