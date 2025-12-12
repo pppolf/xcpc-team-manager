@@ -153,7 +153,9 @@
         <el-table-column label="操作" width="220" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="info" :icon="View" @click="handleView(row)"> 详情 </el-button>
-
+            <el-button type="primary" link icon="Trophy" @click="openHistoryDialog(row)">
+              荣誉档案
+            </el-button>
             <template v-if="userStore.isAdmin">
               <el-button link type="primary" :icon="Edit" @click="openDialog('edit', row)">
                 编辑
@@ -431,6 +433,16 @@
         <el-button @click="viewVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="contestDialogVisible"
+      :title="`📊 ${contestCurrentUser?.realName || ''} 竞赛生涯履历`"
+      width="1000px"
+      destroy-on-close
+      top="5vh"
+    >
+      <UserContestHistory v-if="contestCurrentUser" :target-id="contestCurrentUser._id" />
+    </el-dialog>
   </div>
 </template>
 
@@ -447,6 +459,7 @@ import type { User, Role, TShirtSize, UserParams } from '@/types/user'
 import { Search, Refresh, Plus, Edit, Delete, RefreshRight, View } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import BatchRefreshDrawer from './components/BatchRefreshDrawer.vue'
+import UserContestHistory from './components/UserContestHistory.vue'
 import { resetUserPasswordApi } from '@/api/config'
 import { useUserStore } from '@/stores/user'
 
@@ -682,6 +695,16 @@ const formatRole = (role: string) => {
     'Student-Coach': '学生教练',
   }
   return map[role] || role
+}
+
+// 🟢 弹窗控制
+const contestDialogVisible = ref(false)
+const contestCurrentUser = ref<User>()
+
+// 打开弹窗
+const openHistoryDialog = (row: User) => {
+  contestCurrentUser.value = row
+  contestDialogVisible.value = true
 }
 
 onMounted(() => {

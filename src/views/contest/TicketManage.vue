@@ -47,7 +47,7 @@
                   effect="light"
                   style="margin-left: 4px; transform: scale(0.9)"
                 >
-                  {{ formatContestType(row.type) }}
+                  {{ formatContestType[row.type] }}
                 </el-tag>
               </div>
 
@@ -62,6 +62,14 @@
                   style="margin-left: 4px; transform: scale(0.9)"
                 >
                   {{ row.season }}
+                </el-tag>
+                <el-tag
+                  size="small"
+                  type="info"
+                  effect="light"
+                  style="margin-left: 4px; transform: scale(0.9)"
+                >
+                  {{ formatContestType[row.type] }}
                 </el-tag>
               </div>
             </template>
@@ -265,19 +273,23 @@ const getAwardText = (level: string) => {
 }
 
 // 🟢 辅助函数：格式化比赛类型 (可选)
-const formatContestType = (type: string) => {
-  if (type.includes('FINAL')) return '决赛'
-  if (type.includes('REGIONAL')) return '区域赛'
-  if (type.includes('NET')) return '网络赛'
-  if (type.includes('INVITATIONAL')) return '邀请赛'
-  if (type.includes('PROVINCIAL')) return '省赛'
-  if (type.includes('CAMPUS')) return '校赛'
-  if (type.includes('TRAINING')) return '院赛、训练赛'
-  if (type.includes('NOWCODER_WINTER')) return '牛客寒假营'
-  if (type.includes('NOWCODER_SUMER')) return '牛客暑假多校'
-  if (type.includes('HDU_SPRING')) return '杭电春季训练营'
-  if (type.includes('HDU_SUMMER')) return '杭电暑假多校'
-  return 'XCPC'
+const formatContestType: Record<string, string> = {
+  XCPC_FINAL: 'XCPC 决赛',
+  XCPC_REGIONAL: 'XCPC 区域赛',
+  XCPC_NET: 'XCPC 网络赛',
+  XCPC_INVITATIONAL: 'XCPC 邀请赛',
+  XCPC_PROVINCIAL: 'XCPC 省赛',
+  XCPC_CAMPUS: 'XCPC 校赛',
+  XCPC_TRAINING: 'XCPC (院赛、训练赛)',
+  CAMP_NOWCODER_WINTER: '牛客寒假训练营(个人)',
+  CAMP_NOWCODER_SUMMER: '牛客暑假多校训练营(组队)',
+  CAMP_HDU_SPRING: '杭电春季训练营(个人)',
+  CAMP_HDU_SUMMER: '杭电暑假多校训练营(组队)',
+  LANQIAO: '蓝桥杯',
+  GPLT: '天梯赛',
+  ASTAR: '百度之星',
+  PAT: 'PAT等级认证',
+  NCCCU: '计算机能力挑战赛',
 }
 
 const getImgList = (urlStr: string) => {

@@ -5,7 +5,6 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import router from '@/router'
 
 // 1. 创建 axios 实例
 const service: AxiosInstance = axios.create({
@@ -57,10 +56,14 @@ service.interceptors.response.use(
             confirmButtonText: '重新登录',
             cancelButtonText: '取消',
             type: 'warning',
-          }).then(() => {
-            localStorage.removeItem('token') // 清除 token
-            router.push('/login') // 跳转登录
           })
+            .then(() => {
+              localStorage.removeItem('token') // 清除 token
+              window.location.href = '/login'
+            })
+            .catch(() => {
+              console.log('用户取消了重新登录')
+            })
           break
         case 403:
           ElMessage.error('拒绝访问')
@@ -75,7 +78,7 @@ service.interceptors.response.use(
           ElMessage.error(response.data.message || '网络错误')
       }
     } else {
-      ElMessage.error('网络连接超时或断开')
+      ElMessage.error('网络连接超时或断开，(可能是爬虫超时或账号错误)')
     }
     return Promise.reject(error)
   },

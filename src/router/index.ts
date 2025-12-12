@@ -5,7 +5,6 @@ import 'nprogress/nprogress.css'
 
 // 引入布局组件
 import LoginView from '../views/LoginView.vue'
-import DashboardView from '../views/DashboardView.vue'
 
 // 引入各模块页面
 import Overview from '../views/dashboard/OverView.vue'
@@ -35,7 +34,7 @@ const router = createRouter({
     },
     {
       path: '/admin', // 建议把根路径改为 /admin 或者 /system
-      component: DashboardView,
+      component: () => import('@/views/DashboardView.vue'),
       meta: { requiresAuth: true },
       // 默认跳到控制台
       redirect: '/admin/overview',
@@ -80,12 +79,6 @@ const router = createRouter({
           name: 'Contest',
           redirect: '/admin/contest/apply',
           children: [
-            {
-              path: 'history',
-              name: 'MyContestHistory',
-              component: () => import('@/views/contest/UserContestHistory.vue'),
-              meta: { title: '我的荣誉' },
-            },
             {
               path: 'apply',
               name: 'ContestApply',

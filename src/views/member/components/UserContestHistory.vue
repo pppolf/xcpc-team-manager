@@ -1,43 +1,9 @@
 <template>
-  <div class="history-container">
-    <el-card shadow="hover" class="main-card">
-      <template #header>
+  <div class="history-container" :class="{ 'component-mode': isComponent }">
+    <el-card :shadow="isComponent ? 'never' : 'hover'" class="main-card">
+      <template #header v-if="!isComponent">
         <div class="card-header">
-          <div class="title-box">
-            <span class="main-title">📊 竞赛生涯履历</span>
-            <el-tag v-if="targetUserInfo" type="info" effect="plain" class="user-tag">
-              {{ targetUserInfo.realName }} ({{ targetUserInfo.studentId }})
-            </el-tag>
-          </div>
-
-          <div class="admin-actions">
-            <el-select
-              v-model="searchUserId"
-              filterable
-              remote
-              placeholder="查询其他用户：输入姓名或学号"
-              :remote-method="handleSearchMember"
-              :loading="searchLoading"
-              style="width: 240px"
-              @change="handleUserSwitch"
-            >
-              <el-option
-                v-for="item in memberOptions"
-                :key="item._id"
-                :label="`${item.realName} - ${item.studentId}`"
-                :value="item._id"
-              />
-            </el-select>
-            <el-button
-              v-if="searchUserId && searchUserId !== userStore.userInfo?._id"
-              type="primary"
-              link
-              @click="resetToMe"
-              style="margin-left: 10px"
-            >
-              回看我自己
-            </el-button>
-          </div>
+          <span class="main-title">📊 竞赛生涯履历</span>
         </div>
       </template>
 
@@ -51,7 +17,7 @@
           </el-col>
           <el-col :span="8">
             <div class="stat-item">
-              <div class="label">有效比赛场次</div>
+              <div class="label">有效场次</div>
               <div class="value">{{ tableData.length }}</div>
             </div>
           </el-col>
@@ -70,6 +36,7 @@
         style="width: 100%"
         v-loading="loading"
         :default-sort="{ prop: 'season', order: 'descending' }"
+        height="500"
       >
         <el-table-column prop="season" label="赛季" width="120" sortable>
           <template #default="{ row }">
@@ -77,25 +44,25 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="contestDate" label="认定时间" min-width="80" sortable>
+        <el-table-column prop="contestDate" label="时间" width="110" sortable>
           <template #default="{ row }">
-            {{ formatDate(row.contestDate) }}
+            {{ formatDate(row.contestDate).split(' ')[0] }}
           </template>
         </el-table-column>
 
-        <el-table-column prop="name" label="比赛名称" min-width="180">
+        <el-table-column prop="name" label="比赛名称" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <span style="font-weight: 600; color: #303133">{{ row.name }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="type" label="类型" width="160">
+        <el-table-column prop="type" label="类型" width="140">
           <template #default="{ row }">
             <el-tag size="small" type="info">{{ formatContestType(row.type) }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column label="成绩 / 奖项" width="150">
+        <el-table-column label="成绩" width="140">
           <template #default="{ row }">
             <div v-if="row.awardLevel">
               <el-tag :type="getAwardColor(row.awardLevel)" effect="dark">
@@ -104,31 +71,20 @@
             </div>
             <div v-else-if="row.rank > 0">
               <span class="rank-text">Rank {{ row.rank }}</span>
-              <span class="total-text" v-if="row.totalParticipants">
-                / {{ row.totalParticipants }}</span
-              >
             </div>
-            <span v-else style="color: #999">-</span>
+            <span v-else>-</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="rawScore" label="获得积分" width="120" align="right" sortable>
+        <el-table-column prop="rawScore" label="积分" width="100" align="right" sortable>
           <template #default="{ row }">
             <span class="score-text">+{{ row.rawScore }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column
-          label="操作"
-          width="100"
-          fixed="right"
-          align="center"
-          v-if="userStore.isAdmin"
-        >
+        <el-table-column label="操作" width="80" align="center" v-if="userStore.isAdmin">
           <template #default="{ row }">
-            <el-button type="danger" link icon="Delete" @click="handleDelete(row)">
-              删除
-            </el-button>
+            <el-button type="danger" link icon="Delete" @click="handleDelete(row)"></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -139,21 +95,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { getUserContestsApi, type ContestRecord } from '@/api/contest'
-import { deleteContestRecordApi, getMembersApi } from '@/api/index' // 复用已有的成员列表接口
+import { deleteContestRecordApi } from '@/api/index' // 复用已有的成员列表接口
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+const props = defineProps<{
+  targetId?: string
+}>()
 const userStore = useUserStore()
 const loading = ref(false)
 const tableData = ref<ContestRecord[]>([])
-
-// 管理员搜索相关
-const searchUserId = ref('')
-const searchLoading = ref(false)
-const memberOptions = ref<any[]>([])
-const targetUserInfo = ref<any>(null) // 当前正在查看的那个人的简要信息
+const isComponent = computed(() => !!props.targetId)
 
 // 计算属性
 const totalScore = computed(() => {
@@ -174,8 +128,7 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleString('zh-CN', { hour12: false })
 }
 
-const handleDelete = (row: any) => {
-  console.log(row)
+const handleDelete = (row: ContestRecord) => {
   ElMessageBox.confirm(
     `确定要删除这条 "${row.name}" 的记录吗？删除后该用户的积分将自动重新计算。`,
     '高危操作警告',
@@ -217,46 +170,6 @@ const loadData = async (userId: string) => {
     console.error(error)
   } finally {
     loading.value = false
-  }
-}
-
-// 远程搜索成员
-const handleSearchMember = async (query: string) => {
-  if (!query) return
-  searchLoading.value = true
-  try {
-    // 假设 getMembersApi 支持 realName 或 username 搜索
-    const res = await getMembersApi({ realName: query, pageSize: 20 })
-    memberOptions.value = res.list
-  } catch (e) {
-    console.error(e)
-  } finally {
-    searchLoading.value = false
-  }
-}
-
-// 切换查看对象
-const handleUserSwitch = (val: string) => {
-  // 找到选中的用户信息用于展示
-  const selected = memberOptions.value.find((m) => m._id === val)
-  if (selected) targetUserInfo.value = selected
-  loadData(val)
-}
-
-// 重置回看自己
-const resetToMe = () => {
-  initMyData()
-}
-
-// 初始化自己的数据
-const initMyData = () => {
-  const myId = userStore.userInfo?._id
-  if (myId) {
-    searchUserId.value = myId // 让下拉框显示自己
-    targetUserInfo.value = userStore.userInfo
-    // 初始化下拉框选项包含自己，防止显示ID
-    memberOptions.value = [userStore.userInfo]
-    loadData(myId)
   }
 }
 
@@ -308,54 +221,59 @@ const getAwardColor = (level: string) => {
 }
 
 onMounted(() => {
-  initMyData()
+  // 如果没有传 targetId，说明可能是作为一个普通页面访问自己的
+  if (!props.targetId && userStore.userInfo?._id) {
+    loadData(userStore.userInfo._id)
+  }
 })
+watch(
+  () => props.targetId,
+  (newId) => {
+    if (newId) loadData(newId)
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped lang="scss">
+/* 普通页面模式下的样式 */
 .history-container {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* 🟢 组件模式下的样式覆盖 */
+.history-container.component-mode {
+  margin: 0; /* 去掉外边距 */
+  width: 100%;
 
-  .title-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    .main-title {
-      font-size: 18px;
-      font-weight: bold;
+  .main-card {
+    border: none !important; /* 去掉边框 */
+    :deep(.el-card__body) {
+      padding: 0; /* 紧凑显示 */
     }
   }
 }
 
-/* 统计面板样式 */
 .stats-panel {
   background: #f8f9fa;
   border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #ebeef5;
 
   .stat-item {
     text-align: center;
     .label {
-      font-size: 13px;
+      font-size: 12px;
       color: #909399;
-      margin-bottom: 5px;
     }
     .value {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: #303133;
-      font-family: 'Roboto', sans-serif;
       &.highlight {
         color: #409eff;
-        font-size: 28px;
       }
     }
     border-right: 1px solid #e4e7ed;
@@ -365,18 +283,12 @@ onMounted(() => {
   }
 }
 
-.rank-text {
-  font-weight: bold;
-  color: #e6a23c;
-}
-.total-text {
-  font-size: 12px;
-  color: #909399;
-}
 .score-text {
-  font-family: 'Roboto', sans-serif;
   font-weight: bold;
   color: #67c23a;
-  font-size: 16px;
+}
+.rank-text {
+  color: #e6a23c;
+  font-weight: bold;
 }
 </style>
