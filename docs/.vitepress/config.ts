@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  base: '/xcpc-team-manager/',
+  base: '/',
   title: 'XCPC Manager',
   description: '集训队管理系统文档',
   themeConfig: {

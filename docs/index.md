@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: 'XCPC Team Manager'
-  text: '高校程序设计竞赛集训队管理系统'
+  text: '程序设计竞赛集训队管理系统'
   tagline: '开源、高效、现代化的团队管理解决方案'
   actions:
     - theme: brand
