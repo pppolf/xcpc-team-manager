@@ -22,6 +22,15 @@ export interface ratingInfo {
   activeCoefficient: number
 }
 
+export interface ojStats {
+  codeforces: number
+  atcoder: number
+  nowcoder: number
+  luogu: number
+  cwnuoj: number
+  lastUpdate?: string
+}
+
 // 3. 完整的用户接口 (对应数据库)
 export interface User {
   _id?: string // 新增时没有 ID
@@ -48,6 +57,7 @@ export interface User {
   ratingInfo?: ratingInfo
   lastMonthSolved?: number
   createdAt?: string
+  ojState?: ojStats
 }
 
 // 定义查询参数接口
