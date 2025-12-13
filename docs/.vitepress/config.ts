@@ -4,7 +4,9 @@ export default defineConfig({
   base: '/',
   title: 'XCPC Manager',
   description: '集训队管理系统文档',
+  head: [['link', { rel: 'icon', href: '/logo.png' }]],
   themeConfig: {
+    logo: '/logo.png',
     // 顶部导航栏
     nav: [
       { text: '首页', link: '/' },
