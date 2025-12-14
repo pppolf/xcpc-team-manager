@@ -19,5 +19,10 @@ export const formatRole = (role?: Role) => {
 export const formatDate = (dateStr?: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', { hour12: false })
+  return date.toLocaleString('zh-CN', {
+    hour12: false,
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+  })
 }

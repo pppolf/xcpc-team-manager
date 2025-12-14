@@ -4,13 +4,14 @@
       <template #header>
         <div class="card-header">
           <span>🏆 奖项认定申请</span>
+          <span style="color: #95d475">当前赛季: {{ seasonList[0] }}</span>
           <el-button link type="primary" @click="viewMyHistory">查看申请记录</el-button>
         </div>
       </template>
 
       <el-form :model="form" ref="formRef" :rules="rules" label-width="110px" size="large">
         <el-alert
-          title="请确保上传的截图清晰包含：比赛名称、个人姓名/队伍名、奖项等级。"
+          title="请确保上传的截图清晰包含：比赛名称、个人姓名/队伍名、奖项等级、排名等。"
           type="info"
           show-icon
           style="margin-bottom: 20px"
@@ -477,7 +478,9 @@ const viewMyHistory = async () => {
   historyVisible.value = true
   try {
     const res = await getMyTicketsApi({ scope: 'me' })
-    myTickets.value = res
+    console.log(res)
+
+    myTickets.value = res.list
   } catch (error) {
     console.error(error)
   }

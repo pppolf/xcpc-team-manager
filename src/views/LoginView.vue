@@ -41,7 +41,7 @@
           </div>
         </el-form>
       </el-card>
-      <div class="login-footer">© 2023 XCPC Training Team. All Rights Reserved.</div>
+      <div class="login-footer">© 2025 XCPC Training Team. All Rights Reserved.</div>
     </div>
   </div>
 </template>

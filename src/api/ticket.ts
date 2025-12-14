@@ -1,5 +1,5 @@
 import http from '@/utils/http'
-import type { Ticket, CreateTicketParams } from '@/types/ticket'
+import type { Ticket, CreateTicketParams, PageTicket } from '@/types/ticket'
 
 // 提交工单
 export const createTicketApi = (data: CreateTicketParams) => {
@@ -8,13 +8,13 @@ export const createTicketApi = (data: CreateTicketParams) => {
 
 // 获取工单列表 (支持筛选状态)
 export const getTicketsApi = (params?: { status?: string }) => {
-  return http.get<Ticket[]>('/tickets', params)
+  return http.get<PageTicket>('/tickets', params)
 }
 
 // 获取我的工单记录
 export const getMyTicketsApi = (params?: { scope?: string }) => {
   // 复用列表接口，后端会根据角色自动过滤
-  return http.get<Ticket[]>('/tickets', params)
+  return http.get<PageTicket>('/tickets', params)
 }
 
 // 审批工单

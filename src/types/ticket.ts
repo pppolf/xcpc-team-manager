@@ -22,6 +22,13 @@ export interface Ticket {
   createdAt: string
 }
 
+export interface PageTicket {
+  list: Ticket[],
+  total?: number
+  page?: number
+  pageSize?: number
+}
+
 // 2. 提交工单的参数
 export interface CreateTicketParams {
   contestName: string

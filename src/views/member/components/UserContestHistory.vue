@@ -30,21 +30,14 @@
         </el-row>
       </div>
 
-      <el-table
-        :data="tableData"
-        stripe
-        style="width: 100%"
-        v-loading="loading"
-        :default-sort="{ prop: 'season', order: 'descending' }"
-        height="500"
-      >
+      <el-table :data="tableData" stripe style="width: 100%" v-loading="loading" height="500">
         <el-table-column prop="season" label="赛季" width="120" sortable>
           <template #default="{ row }">
             <el-tag effect="light">{{ row.season }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="contestDate" label="时间" width="110" sortable>
+        <el-table-column prop="contestDate" label="认定时间" width="110">
           <template #default="{ row }">
             {{ formatDate(row.contestDate).split(' ')[0] }}
           </template>

@@ -39,7 +39,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <el-form-item label="比赛名称" prop="name">
-            <el-input v-model="form.name" placeholder="例如: 第48届ICPC区域赛济南站" />
+            <el-input v-model="form.name" placeholder="例如: 第50届ICPC区域赛济南站" />
           </el-form-item>
         </el-col>
         <el-col :span="12">

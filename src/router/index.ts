@@ -19,7 +19,7 @@ const router = createRouter({
       component: LoginView,
     },
     {
-      path: '/admin', // 建议把根路径改为 /admin 或者 /system
+      path: '/admin',
       component: () => import('@/views/DashboardView.vue'),
       meta: { requiresAuth: true },
       // 默认跳到控制台
@@ -89,14 +89,94 @@ const router = createRouter({
         {
           path: 'notice',
           name: 'Notice',
-          component: () => import('@/views/notice/NoticeList.vue'),
+          redirect: '/admin/notice/list',
+          children: [
+            {
+              path: 'list',
+              name: 'NoticeList',
+              component: () => import('@/views/notice/NoticeList.vue'),
+              meta: { title: '公告列表' },
+            },
+            {
+              path: ':nid',
+              name: 'NoticeDetail',
+              component: () => import('@/views/notice/NoticeDetail.vue'),
+              meta: { title: '公告详情', hidden: true, activeMenu: '/admin/notice/list' },
+            },
+            {
+              path: 'manage',
+              name: 'NoticeManage',
+              component: () => import('@/views/notice/NoticeManage.vue'),
+              meta: { title: '公告管理列表' },
+            },
+            {
+              path: 'create',
+              name: 'NoticeCreate',
+              component: () => import('@/views/notice/NoticeEditor.vue'),
+              meta: {
+                title: '发布公告',
+                hidden: true,
+                activeMenu: '/admin/notice/manage',
+              },
+            },
+            {
+              path: 'edit/:id',
+              name: 'NoticeEdit',
+              component: () => import('@/views/notice/NoticeEditor.vue'),
+              meta: {
+                title: '编辑公告',
+                hidden: true,
+                activeMenu: '/admin/notice/manage',
+              },
+            },
+          ],
           meta: { title: '公告管理' },
         },
         // 6. 喜报管理
         {
           path: 'honor',
           name: 'Honor',
-          component: () => import('@/views/honor/HonorList.vue'),
+          redirect: '/admin/honor/list',
+          children: [
+            {
+              path: 'list',
+              name: 'HonorList',
+              component: () => import('@/views/honor/HonorList.vue'),
+              meta: { title: '喜报列表' },
+            },
+            {
+              path: ':hid',
+              name: 'HonorDetail',
+              component: () => import('@/views/honor/HonorDetail.vue'),
+              meta: { title: '喜报详情', hidden: true, activeMenu: '/admin/honor/list' },
+            },
+            {
+              path: 'manage',
+              name: 'HonorManage',
+              component: () => import('@/views/honor/HonorManage.vue'),
+              meta: { title: '喜报管理列表' },
+            },
+            {
+              path: 'create',
+              name: 'HonorCreate',
+              component: () => import('@/views/honor/HonorEditor.vue'),
+              meta: {
+                title: '发布喜报',
+                hidden: true,
+                activeMenu: '/admin/honor/manage',
+              },
+            },
+            {
+              path: 'edit/:id',
+              name: 'HonorEdit',
+              component: () => import('@/views/honor/HonorEditor.vue'),
+              meta: {
+                title: '编辑喜报',
+                hidden: true,
+                activeMenu: '/admin/honor/manage',
+              },
+            },
+          ],
           meta: { title: '喜报管理' },
         },
         // 7. 排行榜

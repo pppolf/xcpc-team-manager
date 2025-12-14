@@ -1,10 +1,15 @@
 <template>
   <div class="manage-container">
-    <el-tabs v-model="activeTab" type="border-card" class="manage-tabs">
+    <el-tabs
+      v-model="activeTab"
+      @tab-change="handleTabChange"
+      type="border-card"
+      class="manage-tabs"
+    >
       <el-tab-pane label="工单审核" name="tickets">
         <div class="filter-bar">
           <el-radio-group v-model="filterStatus" @change="fetchTickets">
-            <el-radio-button label="">全部</el-radio-button>
+            <el-radio-button label="All">全部</el-radio-button>
             <el-radio-button label="Pending">待审核</el-radio-button>
             <el-radio-button label="Approved">已通过</el-radio-button>
             <el-radio-button label="Rejected">已驳回</el-radio-button>
@@ -145,6 +150,17 @@
             </template>
           </el-table-column>
         </el-table>
+        <div class="pagination-box" v-if="activeTab !== 'Pending' && total > 0">
+          <el-pagination
+            v-model:current-page="currentPage"
+            v-model:page-size="pageSize"
+            :total="total"
+            :page-sizes="[5, 10, 20]"
+            background
+            layout="total, sizes, prev, pager, next"
+            @current-change="handlePageChange"
+          />
+        </div>
       </el-tab-pane>
 
       <el-tab-pane label="手动录入记录" name="manual">
@@ -180,7 +196,6 @@ import type { Ticket } from '@/types/ticket' // 引入类型
 import { Refresh, Picture } from '@element-plus/icons-vue' // 🟢 记得把 Picture 加进去
 
 const activeTab = ref('tickets')
-// 🟢 修复：指定类型
 const ticketList = ref<Ticket[]>([])
 const loading = ref(false)
 const filterStatus = ref('Pending')
@@ -188,18 +203,53 @@ const filterStatus = ref('Pending')
 const rejectVisible = ref(false)
 const rejectReason = ref('')
 const currentTicketId = ref('')
+// 分页相关变量
+const currentPage = ref(1)
+const pageSize = ref(5)
+const total = ref(0)
 
 const fetchTickets = async () => {
   loading.value = true
   try {
     // 这里的 status 参数如果为空字符串，API 要处理好
-    const res = await getTicketsApi({ status: filterStatus.value || undefined })
-    ticketList.value = res
+    const params: { state?: string; status?: string; page?: number; pageSize?: number } = {}
+    console.log(filterStatus.value)
+    if (filterStatus.value !== 'All') {
+      params.status = filterStatus.value
+    }
+    if (filterStatus.value !== 'Pending') {
+      params.page = currentPage.value
+      params.pageSize = pageSize.value
+    }
+    const res = await getTicketsApi(params)
+    // 🔴 处理返回数据：兼容分页和不分页两种格式
+    if (filterStatus.value === 'Pending') {
+      // 不分页时，后端通常直接返回数组
+      ticketList.value = res.list
+      total.value = ticketList.value.length
+    } else {
+      // 分页时，后端返回 { list: [], total: 100 }
+      // 如果后端没改，这里可能会报错，需要后端配合修改接口返回格式
+      ticketList.value = res.list || []
+      total.value = res.total || 0
+    }
   } catch (error) {
     console.error(error)
   } finally {
     loading.value = false
   }
+}
+
+// 切换 Tab
+const handleTabChange = () => {
+  currentPage.value = 1 // 切换 Tab 重置为第一页
+  fetchTickets()
+}
+
+// 翻页
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  fetchTickets()
 }
 
 // 格式化时间 (简单的 YYYY-MM-DD HH:mm)
@@ -319,5 +369,10 @@ onMounted(() => {
   max-width: 800px;
   margin: 0 auto;
   padding-top: 20px;
+}
+.pagination-box {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

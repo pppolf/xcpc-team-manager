@@ -59,15 +59,29 @@
           >
         </el-sub-menu>
 
-        <el-menu-item index="/admin/notice" v-if="userStore.isAdmin">
-          <el-icon><Bell /></el-icon>
-          <span>公告管理</span>
-        </el-menu-item>
+        <el-sub-menu index="/admin/notice">
+          <template #title>
+            <el-icon><Bell /></el-icon>
+            <span>公告中心</span>
+          </template>
 
-        <el-menu-item index="/admin/honor" v-if="userStore.isAdmin">
-          <el-icon><Medal /></el-icon>
-          <span>喜报管理</span>
-        </el-menu-item>
+          <el-menu-item index="/admin/notice/list">公告列表</el-menu-item>
+
+          <el-menu-item index="/admin/notice/manage" v-if="userStore.isAdmin"
+            >公告管理</el-menu-item
+          >
+        </el-sub-menu>
+
+        <el-sub-menu index="/admin/honor">
+          <template #title>
+            <el-icon><Medal /></el-icon>
+            <span>喜报中心</span>
+          </template>
+
+          <el-menu-item index="/admin/honor/list">喜报列表</el-menu-item>
+
+          <el-menu-item index="/admin/honor/manage" v-if="userStore.isAdmin">喜报管理</el-menu-item>
+        </el-sub-menu>
 
         <el-menu-item index="/admin/rank">
           <el-icon><Histogram /></el-icon>
@@ -93,7 +107,9 @@
       <el-header class="layout-header">
         <div class="header-left">
           <div class="hamburger-container" v-if="isMobile" @click="toggleSidebar">
-            <el-icon :size="24"><component :is="isSidebarOpen ? 'Fold' : 'Expand'" /></el-icon>
+            <el-icon :size="24">
+              <component :is="isSidebarOpen ? 'Fold' : 'Expand'" />
+            </el-icon>
           </div>
 
           <el-breadcrumb separator="/" v-if="!isMobile">
@@ -154,9 +170,9 @@
           <el-dropdown trigger="click" @command="handleCommand">
             <div class="user-info-box pointer">
               <el-avatar :size="32" :src="userStore.userInfo?.avatar || undefined">
-                <span v-if="!userStore.userInfo?.avatar">{{
-                  userStore.userInfo?.realName?.charAt(0)
-                }}</span>
+                <span v-if="!userStore.userInfo?.avatar">
+                  {{ userStore.userInfo?.realName?.charAt(0) }}
+                </span>
               </el-avatar>
               <span class="username" v-if="!isMobile">{{ userStore.userInfo?.realName }}</span>
               <el-icon class="el-icon--right"><CaretBottom /></el-icon>
@@ -193,6 +209,7 @@ import { useUserStore } from '@/stores/user'
 import { useNotificationStore } from '@/stores/notification'
 import { markReadApi, markAllReadApi, type NotificationItem } from '@/api/notification'
 import { formatDate } from '@/utils/helps'
+// 🟢 引入所需的图标
 import {
   Trophy,
   Odometer,
@@ -206,6 +223,8 @@ import {
   User,
   CaretBottom,
   SwitchButton,
+  Expand,
+  Fold,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -214,32 +233,41 @@ const router = useRouter()
 const route = useRoute()
 const notiStore = useNotificationStore()
 
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const { meta, path } = route
+  if (meta.activeMenu) {
+    return meta.activeMenu as string
+  }
+  return path
+})
 
-// --- 🟢 响应式核心逻辑 ---
+// ==========================================
+// 🟢 响应式核心逻辑 (Start)
+// ==========================================
 const isMobile = ref(false)
 const isSidebarOpen = ref(false)
 
-// 检查窗口宽度
+// 1. 检测是否为移动端 (宽度 < 768px)
 const checkIsMobile = () => {
   const rect = document.body.getBoundingClientRect()
-  isMobile.value = rect.width < 768 // 768px 以下视为手机
+  isMobile.value = rect.width < 768
   if (!isMobile.value) {
-    isSidebarOpen.value = false // 切回电脑时重置状态
+    // 如果切回电脑版，强制关闭侧边栏状态(恢复默认显示)
+    isSidebarOpen.value = false
   }
 }
 
-// 切换侧边栏
+// 2. 切换侧边栏
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
 }
 
-// 关闭侧边栏
+// 3. 关闭侧边栏
 const closeSidebar = () => {
   isSidebarOpen.value = false
 }
 
-// 监听路由变化，跳转页面后自动关闭侧边栏（手机端体验优化）
+// 4. 监听路由变化：手机端跳转后自动关闭侧边栏
 watch(
   () => route.path,
   () => {
@@ -249,6 +277,7 @@ watch(
   },
 )
 
+// 5. 生命周期监听 Resize
 onMounted(() => {
   checkIsMobile()
   window.addEventListener('resize', checkIsMobile)
@@ -259,7 +288,9 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkIsMobile)
   notiStore.stopPolling()
 })
-// --- 逻辑结束 ---
+// ==========================================
+// 🟢 响应式核心逻辑 (End)
+// ==========================================
 
 const handleCommand = (command: string) => {
   if (command === 'profile') router.push('/admin/profile')
@@ -308,10 +339,10 @@ const handleLogout = () => {
 <style scoped lang="scss">
 .layout-container {
   height: 100vh;
-  position: relative; /* 关键：为遮罩层提供定位上下文 */
+  position: relative; /* 关键：为遮罩层提供定位基准 */
 }
 
-/* 侧边栏基础样式 */
+/* 侧边栏通用样式 */
 .aside-menu {
   background-color: #1f2d3d;
   border-right: none;
@@ -320,38 +351,38 @@ const handleLogout = () => {
     width 0.3s;
   height: 100%;
   overflow-y: auto;
-  z-index: 2001; /* 保证侧边栏在遮罩层之上 */
+  z-index: 2001; /* 保证在遮罩层之上 */
 }
 
-/* 🟢 媒体查询：手机端样式 (小于768px) */
+/* =========================================
+   🟢 核心：手机端响应式样式
+   ========================================= */
 @media screen and (max-width: 768px) {
-  /* 手机端侧边栏改为固定定位，脱离 Flex 流 */
+  /* 手机端侧边栏变为固定定位，脱离文档流 */
   .aside-menu {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    width: 220px !important; /* 强制宽度 */
+    width: 220px !important;
   }
 
-  /* 默认隐藏：移出屏幕左侧 */
+  /* 隐藏状态：移出屏幕左侧 */
   .mobile-hidden {
     transform: translate3d(-100%, 0, 0);
-    /* 也可以加 display: none 优化性能，但 transition 会失效，看你喜好 */
   }
 
-  /* 打开状态：移回屏幕 */
+  /* 显示状态：滑入屏幕 */
   .mobile-show {
     transform: translate3d(0, 0, 0);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15); /* 加个阴影更有立体感 */
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
   }
 
-  /* 调整 Header 内边距 */
+  /* Header 调整 */
   .layout-header {
     padding: 0 10px;
   }
 
-  /* Main 区域去掉左侧边距（如果有的话），并防止横向滚动 */
   .layout-main {
     width: 100%;
     overflow-x: hidden;
@@ -393,9 +424,11 @@ const handleLogout = () => {
   background: #14202c;
   gap: 8px;
 }
+
 .el-menu-vertical {
   border-right: none;
 }
+
 .layout-header {
   background: #fff;
   border-bottom: 1px solid #e6e6e6;
@@ -404,15 +437,18 @@ const handleLogout = () => {
   align-items: center;
   padding: 0 20px;
 }
+
 .layout-main {
   background-color: #f0f2f5;
   padding: 20px;
 }
+
 .header-right {
   display: flex;
   align-items: center;
   gap: 15px;
 }
+
 .user-info-box {
   display: flex;
   align-items: center;
@@ -431,9 +467,11 @@ const handleLogout = () => {
   font-weight: 500;
   color: #333;
 }
+
 .mobile-title {
   font-weight: 600;
   font-size: 16px;
+  color: #303133;
 }
 
 /* 动画 */
@@ -446,7 +484,7 @@ const handleLogout = () => {
   opacity: 0;
 }
 
-/* 铃铛和消息样式保持不变 */
+/* 消息通知样式 */
 .notification-bell {
   cursor: pointer;
   display: flex;

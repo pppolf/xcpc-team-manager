@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="dashboard-container">
     <el-card shadow="never" class="banner-card">
@@ -27,7 +28,9 @@
             </div>
             <div class="data-text">
               <div class="label">集训队总人数</div>
-              <div class="value">{{ dashboardData.stats.totalMembers }}</div>
+              <div class="value">
+                <count-up :end-val="realStats.totalMembers" :duration="2.5"></count-up>
+              </div>
             </div>
           </el-card>
           <el-card shadow="hover" class="data-item">
@@ -35,17 +38,25 @@
               <el-icon><Monitor /></el-icon>
             </div>
             <div class="data-text">
-              <div class="label">本赛季总题量</div>
-              <div class="value">{{ dashboardData.stats.totalProblems }}</div>
+              <div class="label">全队总题量</div>
+              <div class="value">
+                <count-up
+                  :end-val="realStats.totalProblems"
+                  :duration="2.5"
+                  :options="{ separator: ',' }"
+                ></count-up>
+              </div>
             </div>
           </el-card>
           <el-card shadow="hover" class="data-item">
-            <div class="data-icon bg-orange">
-              <el-icon><DataLine /></el-icon>
+            <div class="data-icon bg-purple">
+              <el-icon><Medal /></el-icon>
             </div>
             <div class="data-text">
-              <div class="label">今日提交</div>
-              <div class="value">{{ dashboardData.stats.todaySubmissions }}</div>
+              <div class="label">奖项认定总数</div>
+              <div class="value">
+                <count-up :end-val="realStats.totalAwards" :duration="2.5"></count-up>
+              </div>
             </div>
           </el-card>
         </div>
@@ -60,7 +71,7 @@
             </div>
           </template>
           <div class="notice-list">
-            <div v-for="notice in dashboardData.notices" :key="notice.id" class="notice-item">
+            <div v-for="notice in noticeList" :key="notice.nid" class="notice-item">
               <div class="notice-left">
                 <el-tag
                   size="small"
@@ -70,9 +81,11 @@
                 >
                   {{ notice.isTop ? '置顶' : '通知' }}
                 </el-tag>
-                <span class="notice-title">{{ notice.title }}</span>
+                <span class="notice-title" @click="showNoticeDetail(notice.nid)">{{
+                  notice.title
+                }}</span>
               </div>
-              <span class="notice-date">{{ notice.date }}</span>
+              <span class="notice-date">{{ formatDate(notice.createdAt).substring(0, 10) }}</span>
             </div>
           </div>
         </el-card>
@@ -104,52 +117,14 @@
             </div>
           </template>
           <div class="honor-list">
-            <div v-for="(honor, index) in dashboardData.honors" :key="index" class="honor-item">
+            <div v-for="honor in honorList" :key="honor._id" class="honor-item">
               <div class="honor-icon">
                 <img src="https://img.icons8.com/emoji/48/party-popper.png" width="24" />
               </div>
               <div class="honor-content">
-                <div class="honor-text">{{ honor.content }}</div>
-                <div class="honor-date">{{ honor.date }}</div>
+                <div class="honor-text">{{ honor.title }}</div>
+                <div class="honor-date">{{ formatDate(honor.eventDate) }}</div>
               </div>
-            </div>
-          </div>
-        </el-card>
-
-        <el-card shadow="hover" class="mb-20 rank-card">
-          <template #header>
-            <div class="card-header">
-              <span class="title">🏆 积分龙虎榜</span>
-              <el-button link type="primary" @click="$router.push('/admin/rank')"
-                >完整榜单</el-button
-              >
-            </div>
-          </template>
-          <div class="rank-list">
-            <div v-for="(user, index) in dashboardData.topRank" :key="index" class="rank-item">
-              <div class="rank-index">
-                <img
-                  v-if="index === 0"
-                  src="https://img.icons8.com/color/48/medal-first-place.png"
-                  width="24"
-                />
-                <img
-                  v-else-if="index === 1"
-                  src="https://img.icons8.com/color/48/medal-second-place.png"
-                  width="24"
-                />
-                <img
-                  v-else-if="index === 2"
-                  src="https://img.icons8.com/color/48/medal-third-place.png"
-                  width="24"
-                />
-                <span v-else class="rank-num">{{ index + 1 }}</span>
-              </div>
-              <div class="rank-avatar">
-                <el-avatar :size="30" :src="user.avatar">{{ user.name.charAt(0) }}</el-avatar>
-              </div>
-              <div class="rank-name">{{ user.name }}</div>
-              <div class="rank-score">{{ user.rating }}</div>
             </div>
           </div>
         </el-card>
@@ -180,10 +155,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import * as echarts from 'echarts'
-import { Trophy, User, DataLine, Monitor, Bell } from '@element-plus/icons-vue'
+import { Trophy, User, Monitor, Bell } from '@element-plus/icons-vue'
+import { getPublicNoticeListApi } from '@/api/notice'
+import type { Notice } from '@/types/notice'
+import { formatDate } from '@/utils/helps'
+import router from '@/router'
+import { getMembersApi } from '@/api/index'
+import type { IUser } from '@/types/dashboard'
+import { getPublicHonorListApi, type Honor } from '@/api/honor'
+import { getDashboardStatsApi } from '@/api/index'
+import CountUp from 'vue-countup-v3'
 
 const userStore = useUserStore()
 const statusChartRef = ref<HTMLElement | null>(null)
@@ -191,40 +175,18 @@ const genderChartRef = ref<HTMLElement | null>(null)
 let statusChart: echarts.ECharts | null = null
 let genderChart: echarts.ECharts | null = null
 
+const noticeList = ref<Notice[]>()
+const honorList = ref<Honor[]>()
+const memberList = ref<IUser[]>()
+
+const realStats = ref({
+  totalMembers: 0,
+  totalProblems: 0,
+  totalAwards: 0, // 改名
+})
+
 // --- Mock Data ---
 const dashboardData = ref({
-  stats: {
-    totalMembers: 124,
-    totalProblems: 15420,
-    todaySubmissions: 28,
-  },
-  charts: {
-    status: [
-      { value: 86, name: '现役队员' },
-      { value: 38, name: '已退役' },
-    ],
-    gender: [
-      { value: 60, name: '男队员' },
-      { value: 26, name: '女队员' },
-    ],
-  },
-  honors: [
-    { content: '热烈祝贺 我校集训队在第 49 届 ICPC 济南站斩获 1 金 2 银！', date: '2024-12-01' },
-    { content: '祝贺 张三、李四 队伍在 CCPC 女生赛获得 季军', date: '2024-11-15' },
-    { content: '喜报：王五 同学在 Codeforces Round 990 升至 Candidate Master', date: '2024-11-10' },
-  ],
-  notices: [
-    { id: 1, title: '2026赛季集训队暑假留校选拔通知', isTop: true, date: '12-10' },
-    { id: 2, title: '关于实验室卫生的整改要求', isTop: false, date: '12-08' },
-    { id: 3, title: '本周六牛客周赛补题作业', isTop: false, date: '12-05' },
-  ],
-  topRank: [
-    { name: '王大锤', rating: 2200, avatar: '' },
-    { name: '李小花', rating: 2050, avatar: '' },
-    { name: '张全蛋', rating: 1980, avatar: '' },
-    { name: '赵铁柱', rating: 1950, avatar: '' },
-    { name: '刘波', rating: 1890, avatar: '' },
-  ],
   upcomingContests: [
     {
       name: 'Codeforces Round 998 (Div. 2)',
@@ -243,24 +205,61 @@ const dashboardData = ref({
   ],
 })
 
-// --- 初始化图表 ---
+// --- 核心：根据 memberList 计算图表数据 ---
+const updateCharts = () => {
+  if (!memberList.value || memberList.value.length === 0) return
+
+  // 1. 计算现役/退役
+  const activeCount = memberList.value.filter((m) => m.status === 'Active').length
+  const retiredCount = memberList.value.filter((m) => m.status === 'Retired').length
+
+  // 2. 计算男女比例
+  const maleCount = memberList.value.filter((m) => m.gender === '男').length
+  const femaleCount = memberList.value.filter((m) => m.gender === '女').length
+
+  // 更新图表 1
+  statusChart?.setOption({
+    series: [
+      {
+        data: [
+          { value: activeCount, name: '现役队员' },
+          { value: retiredCount, name: '已退役' },
+        ],
+      },
+    ],
+  })
+
+  // 更新图表 2
+  genderChart?.setOption({
+    series: [
+      {
+        data: [
+          { value: maleCount, name: '男队员' },
+          { value: femaleCount, name: '女队员' },
+        ],
+      },
+    ],
+  })
+}
+
+// --- 初始化图表配置 (空数据) ---
 const initCharts = () => {
   if (statusChartRef.value) {
     statusChart = echarts.init(statusChartRef.value)
     statusChart.setOption({
       tooltip: { trigger: 'item' },
       legend: { bottom: '0%', left: 'center' },
-      color: ['#67C23A', '#909399'], // 现役绿色，退役灰色
+      color: ['#67C23A', '#909399'],
       series: [
         {
           name: '队员状态',
           type: 'pie',
-          radius: ['40%', '70%'], // 环形图
+          radius: ['40%', '70%'],
           avoidLabelOverlap: false,
           itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
           label: { show: false, position: 'center' },
           emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } },
-          data: dashboardData.value.charts.status,
+          data: [], // 🟢 初始为空，等待 watch 更新
         },
       ],
     })
@@ -271,13 +270,13 @@ const initCharts = () => {
     genderChart.setOption({
       tooltip: { trigger: 'item' },
       legend: { bottom: '0%', left: 'center' },
-      color: ['#409EFF', '#F56C6C'], // 男蓝，女粉红
+      color: ['#409EFF', '#F56C6C'],
       series: [
         {
           name: '性别比例',
           type: 'pie',
-          radius: '70%', // 实心饼图
-          data: dashboardData.value.charts.gender,
+          radius: '70%',
+          data: [], // 🟢 初始为空
           emphasis: {
             itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' },
           },
@@ -292,11 +291,43 @@ const handleResize = () => {
   genderChart?.resize()
 }
 
-onMounted(() => {
+// --- API 调用 ---
+const getDashboardData = async () => {
+  // 1. 获取统计数字
+  const statsRes = await getDashboardStatsApi()
+  realStats.value = statsRes
+
+  // 2. 获取列表数据
+  const noticeRes = await getPublicNoticeListApi({ page: 1, pageSize: 5 })
+  noticeList.value = noticeRes.list
+
+  const honorRes = await getPublicHonorListApi({ page: 1, pageSize: 5 })
+  honorList.value = honorRes.list
+
+  // 3. 获取全量队员用于图表分析
+  const memberRes = await getMembersApi({ page: 1, pageSize: 999 }) // 确保获取全部
+  memberList.value = memberRes.list
+}
+
+const showNoticeDetail = (nid: number) => {
+  router.push({ path: `/admin/notice/${nid}`, replace: true })
+}
+
+watch(memberList, () => {
+  if (statusChart && genderChart) {
+    updateCharts()
+  }
+})
+
+onMounted(async () => {
+  // 先初始化空图表
   nextTick(() => {
     initCharts()
     window.addEventListener('resize', handleResize)
   })
+
+  // 再拉取数据
+  await getDashboardData()
 })
 
 onUnmounted(() => {
@@ -396,6 +427,9 @@ onUnmounted(() => {
       &.bg-orange {
         background: linear-gradient(135deg, #e6a23c, #f3d19e);
       }
+      &.bg-purple {
+        background: linear-gradient(135deg, #a0cfff, #b37feb);
+      }
     }
     .data-text {
       .label {
@@ -407,7 +441,8 @@ onUnmounted(() => {
         font-size: 24px;
         font-weight: bold;
         color: #303133;
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Roboto', sans-serif; /* 这里的字体最好是等宽数字字体，防止滚动时抖动 */
+        min-width: 60px; /* 给个最小宽度 */
       }
     }
   }
@@ -512,7 +547,7 @@ onUnmounted(() => {
       font-size: 12px;
       color: #909399;
       margin-left: 10px;
-      width: 40px;
+      width: 60px;
       text-align: right;
     }
   }

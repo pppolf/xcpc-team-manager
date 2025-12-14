@@ -4,7 +4,10 @@
   "exclude": ["src/**/__tests__/*"],
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node", // 或者 "bundler"
+    "types": ["vite/client", "element-plus/global"], // 关键：引入 vite 类型
     "paths": {
       "@/*": ["./src/*"]
     }
