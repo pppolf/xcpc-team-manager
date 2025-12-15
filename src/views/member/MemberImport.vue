@@ -19,8 +19,8 @@
           <div class="tips-content">
             <p><strong>请不要包含表头！</strong>直接复制 Excel 数据行粘贴。</p>
             <p>
-              <strong>列顺序 (16列): </strong>姓名 | 性别 | 学院 | 专业 | 年级 | 学号 | 手机号 |
-              身份证 | 邮箱 | 入学年份 | T恤 | CF | AT | 牛客 | 洛谷 | 校内OJ
+              <strong>列顺序 (17列): </strong>姓名 | 性别 | 学院 | 专业 | 年级 | 学号 | 手机号 |
+              身份证 | 邮箱 | 入学年份 | T恤 | CF | AT | 牛客 | 洛谷 | 校内OJ | vjudge
             </p>
           </div>
         </template>
@@ -76,7 +76,11 @@
 
         <el-table-column label="OJ 账号" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
-            CF:{{ row.user.ojInfo?.cf || '-' }} / AT:{{ row.user.ojInfo?.at || '-' }}
+            CF:{{ row.user.ojInfo?.cf || '-' }} / AT:{{ row.user.ojInfo?.at || '-' }} / NC:{{
+              row.user.ojInfo?.nc || '-'
+            }}
+            / LG:{{ row.user.ojInfo?.lg || '-' }} / 校内OJ:{{ row.user.ojInfo?.cwnuoj || '-' }} /
+            vjudge:{{ row.user.ojInfo?.vjudge || '-' }}
           </template>
         </el-table-column>
 
@@ -131,7 +135,7 @@ const parseData = async () => {
 
   // 1. 获取现有队员ID，用于查重
   try {
-    const res = await getMembersApi({pageSize: 10000})
+    const res = await getMembersApi({ pageSize: 10000 })
     const currentMembers = res.list
     existingStudentIds.value = new Set(currentMembers.map((u) => u.studentId))
   } catch (e) {
@@ -167,6 +171,7 @@ const parseData = async () => {
     const nc = getCol(13)
     const lg = getCol(14)
     const cwnuoj = getCol(15)
+    const vjudge = getCol(16)
 
     let errorMsg = ''
 
@@ -215,6 +220,7 @@ const parseData = async () => {
         nc,
         lg,
         cwnuoj,
+        vjudge,
       },
     }
 

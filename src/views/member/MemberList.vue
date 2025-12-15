@@ -330,6 +330,10 @@
                       v-model="form.ojInfo.cwnuoj"
                       placeholder="UID (数字)" /></el-form-item
                 ></el-col>
+                <el-col :span="12"
+                  ><el-form-item label="vjudge"
+                    ><el-input v-model="form.ojInfo.vjudge" placeholder="用户名" /></el-form-item
+                ></el-col>
               </el-row>
             </div>
           </el-tab-pane>
@@ -427,6 +431,9 @@
           <el-descriptions-item label="校内OJ">
             {{ currentUser.ojInfo?.cwnuoj || '未绑定' }}
           </el-descriptions-item>
+          <el-descriptions-item label="vjudge">
+            {{ currentUser.ojInfo?.vjudge || '未绑定' }}
+          </el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
@@ -510,7 +517,7 @@ const initialForm: User = {
   rating: 0,
   problemNumber: 0,
   createdAt: '',
-  ojInfo: { cf: '', at: '', nc: '', lg: '', cwnuoj: '' },
+  ojInfo: { cf: '', at: '', nc: '', lg: '', cwnuoj: '', vjudge: '' },
 }
 
 const form = reactive<User>(JSON.parse(JSON.stringify(initialForm)))

@@ -13,6 +13,7 @@ export interface OjInfo {
   nc?: string // 虽然这里是 string，但对应数据库可能是 string 类型的 ID
   lg?: string
   cwnuoj?: string
+  vjudge?: string
 }
 
 export interface ratingInfo {

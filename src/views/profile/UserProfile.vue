@@ -113,6 +113,10 @@
               <el-descriptions-item label="学校OJ">
                 {{ userInfo.ojInfo.cwnuoj || '未绑定' }}
               </el-descriptions-item>
+
+              <el-descriptions-item label="vjudge">
+                {{ userInfo.ojInfo.vjudge || '未绑定' }}
+              </el-descriptions-item>
             </el-descriptions>
 
             <div class="footer-tip">

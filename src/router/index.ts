@@ -56,7 +56,21 @@ const router = createRouter({
         {
           path: 'training',
           name: 'Training',
-          component: () => import('@/views/training/TrainingList.vue'),
+          redirect: '/admin/training/list',
+          children: [
+            {
+              path: 'list',
+              name: 'TrainingList',
+              component: () => import('@/views/training/TrainingList.vue'),
+              meta: { title: '训练列表' },
+            },
+            {
+              path: ':id',
+              name: 'TrainingDetail',
+              component: () => import('@/views/training/TrainingDetail.vue'),
+              meta: { title: '训练详情', hidden: true, activeMenu: '/admin/training/list' },
+            },
+          ],
           meta: { title: '训练管理' },
         },
         // 4. 比赛管理

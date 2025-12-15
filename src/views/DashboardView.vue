@@ -40,7 +40,7 @@
           >
         </el-sub-menu>
 
-        <el-menu-item index="/admin/training" v-if="userStore.isAdmin">
+        <el-menu-item index="/admin/training">
           <el-icon><DataLine /></el-icon>
           <span>训练管理</span>
         </el-menu-item>
