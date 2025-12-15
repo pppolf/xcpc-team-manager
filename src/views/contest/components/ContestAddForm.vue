@@ -201,7 +201,7 @@ const rankRules = computed(() => {
   return showRankFields.value ? [{ required: true, message: '此项必填', trigger: 'blur' }] : []
 })
 
-const handleCascaderChange = (val: string[]) => {
+const handleCascaderChange = (val: any) => {
   if (!val || val.length === 0) return
 
   if (val[0] === 'XCPC') {

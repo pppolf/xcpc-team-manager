@@ -57,7 +57,7 @@
               </div>
 
               <div v-else>
-                <el-tag size="small" effect="plain" :type="row.awardLevel ? '' : 'info'">
+                <el-tag size="small" effect="plain" :type="row.awardLevel ? 'primary' : 'info'">
                   {{ getAwardText(row.awardLevel) || '无等级' }}
                 </el-tag>
                 <el-tag
@@ -177,7 +177,7 @@
     </el-tabs>
 
     <el-dialog v-model="rejectVisible" title="驳回申请" width="400px">
-      <el-input v-model="rejectReason" type="textarea" placeholder="请输入驳回理由..." rows="3" />
+      <el-input v-model="rejectReason" type="textarea" placeholder="请输入驳回理由..." :rows="3" />
       <template #footer>
         <el-button @click="rejectVisible = false">取消</el-button>
         <el-button type="danger" @click="confirmReject">确认驳回</el-button>

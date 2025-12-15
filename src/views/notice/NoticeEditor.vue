@@ -131,7 +131,12 @@ import {
 } from '@/api/notice'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
-import { ElMessage, type UploadFile, type UploadRequestOptions, type UploadUserFile } from 'element-plus'
+import {
+  ElMessage,
+  type UploadFile,
+  type UploadRequestOptions,
+  type UploadUserFile,
+} from 'element-plus'
 import { Document, Upload, View, Delete } from '@element-plus/icons-vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
 import '@wangeditor/editor/dist/css/style.css'
@@ -173,7 +178,7 @@ const isEdit = computed(() => !!route.params.id)
 // ==========================================
 // 🟢 3. 核心：模式切换与内容转换
 // ==========================================
-const handleModeChange = (val: string | number | boolean) => {
+const handleModeChange = (val: string | number | boolean | undefined) => {
   const content = form.value.content
   if (!content) return
 
@@ -196,7 +201,7 @@ const editorConfig = {
       async customUpload(file: File, insertFn: (url: string, alt: string, href: string) => void) {
         try {
           const res = await uploadApi(file)
-          const url = import.meta.env.VITE_API_BASE_URL + res?.url
+          const url = res?.url || ''
           insertFn(url, res?.name || '', url)
         } catch (error) {
           ElMessage.error(`图片上传失败: ${error}`)
@@ -239,7 +244,7 @@ const getFileType = (name: string) => {
 
 const onUploadImg = async (files: File[], callback: (urls: string[]) => void) => {
   const res = await Promise.all(files.map((file) => uploadImgApi(file)))
-  const urls = res.map((item) => import.meta.env.VITE_API_BASE_URL + item?.url)
+  const urls = res.map((item) => item?.url || '')
   callback(urls)
 }
 
@@ -274,7 +279,7 @@ const handleRemove = (index: number) => {
 }
 
 const previewFile = (url: string) => {
-  const fullUrl = import.meta.env.VITE_API_BASE_URL + url
+  const fullUrl = url
   window.open(fullUrl, '_blank')
 }
 

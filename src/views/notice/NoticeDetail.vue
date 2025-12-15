@@ -238,12 +238,11 @@ const handleClosePreview = () => {
 
 // 获取完整 URL
 const getFullUrl = (url: string) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
-  return url.startsWith('http') ? url : baseUrl + url
+  return url
 }
 
 const downloadFile = (url: string) => {
-  const fullUrl = url.startsWith('http') ? url : getFullUrl(url)
+  const fullUrl = url
   window.open(fullUrl, '_blank')
 }
 

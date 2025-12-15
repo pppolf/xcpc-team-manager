@@ -105,7 +105,7 @@
           <el-input
             v-model="form.description"
             type="textarea"
-            rows="3"
+            :rows="3"
             placeholder="如有特殊情况请说明"
           />
         </el-form-item>
@@ -377,7 +377,7 @@ const showRankFields = computed(() => {
 })
 
 // 级联选择器变化处理
-const handleCascaderChange = (val: string[]) => {
+const handleCascaderChange = (val: any) => {
   if (!val || val.length === 0) return
 
   if (val[0] === 'XCPC') {

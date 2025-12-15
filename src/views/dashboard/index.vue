@@ -137,7 +137,7 @@
             <el-timeline-item
               v-for="(contest, index) in dashboardData.upcomingContests"
               :key="index"
-              :type="contest.type"
+              :type="contest.type as any"
               :color="contest.color"
               :timestamp="contest.date"
               placement="top"

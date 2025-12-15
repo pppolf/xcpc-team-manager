@@ -130,7 +130,7 @@ const handleCoverUpload = async (options: UploadRequestOptions) => {
 // 获取完整图片地址
 const getFullUrl = (url: string) => {
   if (!url) return ''
-  return url.startsWith('http') ? url : import.meta.env.VITE_API_BASE_URL + url
+  return url
 }
 
 // WangEditor 配置 (图片上传复用)
@@ -140,7 +140,7 @@ const editorConfig = {
     uploadImage: {
       async customUpload(file: File, insertFn: (url: string, alt: string, href: string) => void) {
         const res = await uploadApi(file)
-        const url = import.meta.env.VITE_API_BASE_URL + res?.url
+        const url = res?.url || ''
         insertFn(url, res?.name || '', url)
       },
     },
@@ -150,7 +150,7 @@ const handleCreated = (editor: IDomEditor) => (editorRef.value = editor)
 onBeforeUnmount(() => editorRef.value?.destroy())
 
 // 模式切换
-const handleModeChange = (val: string | number | boolean) => {
+const handleModeChange = (val: string | number | boolean | undefined) => {
   if (!form.value.content) return
   if (val === 'rich') form.value.content = marked.parse(form.value.content) as string
   else form.value.content = turndownService.turndown(form.value.content)
@@ -159,7 +159,7 @@ const handleModeChange = (val: string | number | boolean) => {
 // Markdown 图片上传
 const onUploadImg = async (files: File[], callback: (urls: string[]) => void) => {
   const res = await Promise.all(files.map((file) => uploadApi(file)))
-  callback(res.map((item) => import.meta.env.VITE_API_BASE_URL + item?.url))
+  callback(res.map((item) => item?.url || ''))
 }
 
 const handleSave = async (status: 'DRAFT' | 'PUBLISHED') => {

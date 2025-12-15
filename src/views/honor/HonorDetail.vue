@@ -33,7 +33,7 @@ const info = ref<Partial<Honor>>({})
 
 const getFullUrl = (url?: string) => {
   if (!url) return ''
-  return url.startsWith('http') ? url : import.meta.env.VITE_API_BASE_URL + url
+  return url
 }
 
 const formatDateSimple = (d: string) => {
