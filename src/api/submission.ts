@@ -20,7 +20,7 @@ export const syncCodeForcesApi = (username: string) =>
 // 3. 同步 Luogu (支持传 client_id)
 export const syncLuoguApi = (username: string, client_id?: string) =>
   http.get(`/submissions/luogu/${username}`, {
-    params: { client_id }, // 将 client_id 作为 query 参数传递
+    client_id, // 将 client_id 作为 query 参数传递
   })
 
 // 4. 同步 NowCoder
