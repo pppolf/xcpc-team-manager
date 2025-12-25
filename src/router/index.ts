@@ -32,6 +32,12 @@ const router = createRouter({
           component: () => import('@/views/dashboard/index.vue'),
           meta: { title: '控制台首页' },
         },
+        {
+          path: 'stats',
+          name: 'Stats',
+          component: () => import('@/views/stats/StatsView.vue'),
+          meta: { title: 'CP Traker' },
+        },
         // 2. 队员管理 (包含子路由)
         {
           path: 'member',

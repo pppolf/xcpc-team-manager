@@ -26,3 +26,11 @@ export const formatDate = (dateStr?: string) => {
     year: 'numeric',
   })
 }
+
+export const formatTime = (dateStr?: string) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    hour12: false,
+  })
+}

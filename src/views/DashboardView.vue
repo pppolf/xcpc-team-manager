@@ -29,6 +29,11 @@
           <span>控制台首页</span>
         </el-menu-item>
 
+        <el-menu-item index="/admin/stats">
+          <el-icon><TrophyBase /></el-icon>
+          <span>CP Traker</span>
+        </el-menu-item>
+
         <el-sub-menu index="/admin/member">
           <template #title>
             <el-icon><UserFilled /></el-icon>

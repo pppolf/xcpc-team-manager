@@ -41,7 +41,7 @@ service.interceptors.response.use(
       return res.data // ✅ 核心：直接返回 data，剥离外层包装
     } else {
       // 业务逻辑错误 (如密码错误)
-      ElMessage.error(res.message || '系统错误')
+      ElMessage.error(res.message || '业务错误')
       return Promise.reject(new Error(res.message || 'Error'))
     }
   },
