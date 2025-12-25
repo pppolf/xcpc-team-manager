@@ -1028,20 +1028,13 @@ const handleSync = async () => {
     tasks.push(syncNowCoderApi(userOjInfo.value.nc as string).then(() => 'NowCoder: 成功'))
 
   try {
-    const results = await Promise.allSettled(tasks)
-    const successes = results
-      .filter((r) => r.status === 'fulfilled')
-      .map((r) => (r as PromiseFulfilledResult<string>).value)
-    if (results.some((r) => r.status === 'rejected'))
-      ElMessage.warning(`部分完成。成功: ${successes.length}`)
-    else {
-      ElMessage.success(`同步完成！`)
-      syncDialogVisible.value = false
-      luoguCookie.value = ''
-      loadData()
-    }
+    await Promise.all(tasks)
+    ElMessage.success('同步任务已全部后台启动！请留意右上角消息通知。')
+    syncDialogVisible.value = false
+    luoguCookie.value = ''
   } catch (e) {
-    ElMessage.error('同步异常')
+    console.log(e)
+    ElMessage.error('同步异常，请检查网络')
   } finally {
     syncing.value = false
   }
