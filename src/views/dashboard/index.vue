@@ -7,10 +7,13 @@
           <h2>
             你好，{{ userStore.userInfo?.realName || 'XCPC 选手' }}，今天也是充满希望的一天！✨
           </h2>
-          <p class="subtitle">
+          <p class="subtitle" v-if="dashboardData.targetContest.name">
             "AC 一道题，快乐一整天。" —— 距离
-            <span class="highlight-contest">第 50 届 ICPC 昆明站</span>
-            还有 <span class="highlight-days">15</span> 天
+            <span class="highlight-contest">{{ dashboardData.targetContest.name }}</span>
+            还有 <span class="highlight-days">{{ daysLeft }}</span> 天
+          </p>
+          <p class="subtitle" v-else>
+            "AC 一道题，快乐一整天。" —— 暂无目标赛事，请在系统设置中添加。
           </p>
         </div>
         <div class="right-img">
@@ -131,23 +134,51 @@
 
         <el-card shadow="hover" class="mb-20 contest-card">
           <template #header>
-            <span class="title">📅 近期赛事</span>
+            <div class="card-header">
+              <span class="title">📅 近期赛事</span>
+              <el-tag type="info" effect="plain" round size="small" class="count-tag">
+                Next {{ dashboardData.upcomingContests.length }}
+              </el-tag>
+            </div>
           </template>
-          <el-timeline>
-            <el-timeline-item
-              v-for="(contest, index) in dashboardData.upcomingContests"
-              :key="index"
-              :type="contest.type as any"
-              :color="contest.color"
-              :timestamp="contest.date"
-              placement="top"
-            >
-              <div class="contest-content">
-                <div class="contest-name">{{ contest.name }}</div>
-                <div class="contest-platform">{{ contest.platform }}</div>
-              </div>
-            </el-timeline-item>
-          </el-timeline>
+
+          <div class="contest-list-scroll">
+            <el-empty
+              v-if="dashboardData.upcomingContests.length === 0"
+              description="近期暂无赛事"
+              :image-size="60"
+            />
+
+            <el-timeline v-else class="custom-timeline">
+              <el-timeline-item
+                v-for="(contest, index) in dashboardData.upcomingContests"
+                :key="index"
+                :color="getContestColor(contest.platform)"
+                :hollow="true"
+                :timestamp="formatContestTime(contest.startTime || contest.date)"
+                placement="top"
+              >
+                <div class="contest-item-wrapper">
+                  <div class="contest-info">
+                    <div class="contest-title-row">
+                      <span class="contest-name" :title="contest.name">{{ contest.name }}</span>
+                    </div>
+                    <div class="contest-meta">
+                      <span class="platform-badge" :style="getPlatformStyle(contest.platform)">
+                        {{ contest.platform }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="contest-action" v-if="contest.link">
+                    <a :href="contest.link" target="_blank" class="action-btn">
+                      <el-icon><TopRight /></el-icon>
+                    </a>
+                  </div>
+                </div>
+              </el-timeline-item>
+            </el-timeline>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -155,7 +186,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted, watch } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted, watch, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import * as echarts from 'echarts'
 import { Trophy, User, Monitor, Bell } from '@element-plus/icons-vue'
@@ -168,6 +199,7 @@ import type { IUser } from '@/types/dashboard'
 import { getPublicHonorListApi, type Honor } from '@/api/honor'
 import { getDashboardStatsApi } from '@/api/index'
 import CountUp from 'vue-countup-v3'
+import dayjs from 'dayjs'
 
 const userStore = useUserStore()
 const statusChartRef = ref<HTMLElement | null>(null)
@@ -185,25 +217,85 @@ const realStats = ref({
   totalAwards: 0, // 改名
 })
 
-// --- Mock Data ---
-const dashboardData = ref({
-  upcomingContests: [
-    {
-      name: 'Codeforces Round 998 (Div. 2)',
-      platform: 'CodeForces',
-      date: '今晚 22:35',
-      type: 'primary',
-      color: '#409eff',
-    },
-    {
-      name: '牛客小白月赛 85',
-      platform: 'NowCoder',
-      date: '周六 19:00',
-      type: 'warning',
-      color: '#e6a23c',
-    },
-  ],
+// 数据定义
+interface DashboardConfig {
+  targetContest: { name: string; date: string }
+  upcomingContests: Array<{
+    name: string
+    platform: string
+    startTime?: string
+    date?: string
+    link?: string
+  }>
+}
+
+const dashboardData = ref<DashboardConfig>({
+  targetContest: { name: '', date: '' },
+  upcomingContests: [],
 })
+
+// 倒计时
+const daysLeft = computed(() => {
+  if (!dashboardData.value.targetContest.date) return 0
+  const target = dayjs(dashboardData.value.targetContest.date)
+  const diff = target.diff(dayjs(), 'day')
+  return diff >= 0 ? diff : 0
+})
+
+// 样式辅助
+const getContestColor = (platform: string) => {
+  const map: Record<string, string> = {
+    CodeForces: '#409eff',
+    AtCoder: '#303133',
+    NowCoder: '#e6a23c',
+    Luogu: '#67c23a',
+    ICPC: '#f56c6c',
+  }
+  return map[platform] || '#909399'
+}
+// 2. 添加这个样式映射函数
+const getPlatformStyle = (platform: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const styles: Record<string, any> = {
+    CodeForces: { color: '#1890ff', bg: '#e6f7ff', border: '#91d5ff' }, // 科技蓝
+    AtCoder: { color: '#303133', bg: '#f5f5f5', border: '#b7eb8f' }, // 极客黑
+    NowCoder: { color: '#d48806', bg: '#fffbe6', border: '#ffe58f' }, // 活力橙
+  }
+  // 默认样式
+  const defaultStyle = { color: '#909399', bg: '#f4f4f5', border: '#e9e9eb' }
+
+  const s = styles[platform] || defaultStyle
+
+  // 返回内联样式对象
+  return {
+    color: s.color,
+    backgroundColor: s.bg,
+    border: `1px solid ${s.border}`,
+  }
+}
+const formatContestTime = (dateStr?: string) => {
+  if (!dateStr) return ''
+  const date = dayjs(dateStr)
+  const now = dayjs()
+
+  // 判断今天
+  if (date.isSame(now, 'day')) {
+    return `今天 ${date.format('HH:mm')}`
+  }
+
+  // 判断明天
+  if (date.isSame(now.add(1, 'day'), 'day')) {
+    return `明天 ${date.format('HH:mm')}`
+  }
+
+  // 判断后天
+  if (date.isSame(now.add(2, 'day'), 'day')) {
+    return `后天 ${date.format('HH:mm')}`
+  }
+
+  // 其他日期
+  return date.format('MM-DD HH:mm')
+}
 
 // --- 核心：根据 memberList 计算图表数据 ---
 const updateCharts = () => {
@@ -296,6 +388,9 @@ const getDashboardData = async () => {
   // 1. 获取统计数字
   const statsRes = await getDashboardStatsApi()
   realStats.value = statsRes
+  if (statsRes.config) {
+    dashboardData.value = statsRes.config
+  }
 
   // 2. 获取列表数据
   const noticeRes = await getPublicNoticeListApi({ page: 1, pageSize: 5 })
@@ -605,6 +700,143 @@ onUnmounted(() => {
   .contest-platform {
     font-size: 12px;
     color: #909399;
+  }
+}
+
+/* 赛事卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  .title {
+    font-weight: bold;
+    font-size: 16px;
+  }
+  .count-tag {
+    font-size: 12px;
+    transform: scale(0.9);
+  }
+}
+
+/* 滚动容器 */
+.contest-list-scroll {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 10px;
+
+  /* 美化滚动条 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Timeline 调整 */
+.custom-timeline {
+  padding-left: 0;
+  :deep(.el-timeline-item__timestamp) {
+    font-size: 12px;
+    color: #909399;
+    margin-bottom: 4px;
+  }
+}
+
+/* 单个赛事项容器 */
+.contest-item-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: #fcfcfc;
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #fff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border-color: #e6e6e6;
+    .contest-name {
+      color: #409eff;
+    }
+    .action-btn {
+      opacity: 1;
+      color: #409eff;
+      background: #ecf5ff;
+    }
+  }
+}
+
+.contest-info {
+  flex: 1;
+  min-width: 0; /* 必须，防止文本溢出破坏 flex 布局 */
+}
+
+.contest-title-row {
+  margin-bottom: 6px;
+}
+
+.contest-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 超长省略 */
+  transition: color 0.2s;
+}
+
+/* 平台徽章 */
+.platform-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 跳转按钮 */
+.contest-action {
+  margin-left: 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: #909399;
+  background: #f5f5f5;
+  transition: all 0.2s;
+  opacity: 0.8;
+
+  &:hover {
+    transform: scale(1.1);
+  }
+}
+
+/* 保持你原有的 CSS 不变，只需确保添加以下辅助类 */
+.ml-2 {
+  margin-left: 8px;
+}
+.text-xs {
+  font-size: 12px;
+}
+.text-blue-500 {
+  color: #409eff;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
   }
 }
 

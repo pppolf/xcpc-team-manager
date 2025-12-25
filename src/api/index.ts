@@ -107,13 +107,12 @@ export const getLeaderboardApi = (season?: string) => {
   return http.get<LeaderboardResponse>('/rating/leaderboard', { season })
 }
 
-
-
 // DashBoard API
 export const getDashboardStatsApi = () => {
   return http.get<{
     totalProblems: number
     totalAwards: number
     totalMembers: number
+    config: any
   }>('/dashboard/stats')
 }

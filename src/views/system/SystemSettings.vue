@@ -91,6 +91,86 @@
             </el-col>
           </el-row>
         </el-card>
+
+        <el-card shadow="hover" class="setting-card">
+          <template #header>
+            <div class="card-header">
+              <div class="header-left">
+                <el-icon class="header-icon"><Trophy /></el-icon>
+                <span>手动赛事管理</span>
+              </div>
+              <div class="header-actions">
+                <el-button
+                  type="primary"
+                  plain
+                  :icon="Refresh"
+                  :loading="refreshing"
+                  @click="handleRefreshCrawler"
+                >
+                  更新爬虫
+                </el-button>
+                <el-button type="success" :icon="Plus" @click="dialogVisible = true"
+                  >添加赛事</el-button
+                >
+              </div>
+            </div>
+          </template>
+
+          <el-alert
+            title="规则说明：Codeforces/AtCoder 比赛会自动抓取。在此处添加的「未开始」且「时间最近」的比赛，将自动成为首页顶部的倒计时目标。"
+            type="info"
+            show-icon
+            class="mb-4"
+            :closable="false"
+          />
+
+          <el-table :data="manualList" style="width: 100%" border stripe size="small">
+            <el-table-column prop="name" label="赛事名称" min-width="180">
+              <template #default="{ row }">
+                <span class="font-bold">{{ row.name }}</span>
+                <el-tag v-if="isTarget(row)" type="danger" size="small" class="ml-2" effect="dark"
+                  >当前目标</el-tag
+                >
+              </template>
+            </el-table-column>
+
+            <el-table-column prop="platform" label="平台" width="100">
+              <template #default="{ row }">
+                <el-tag size="small">{{ row.platform }}</el-tag>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="开始时间" width="160">
+              <template #default="{ row }">
+                {{ formatDate(row.startTime) }}
+              </template>
+            </el-table-column>
+
+            <el-table-column label="链接" show-overflow-tooltip>
+              <template #default="{ row }">
+                <a
+                  v-if="row.link"
+                  :href="row.link"
+                  target="_blank"
+                  class="text-blue-500 hover:underline"
+                  >{{ row.link }}</a
+                >
+                <span v-else class="text-gray-400">-</span>
+              </template>
+            </el-table-column>
+
+            <el-table-column label="操作" width="80" align="center">
+              <template #default="{ row }">
+                <el-button
+                  type="danger"
+                  link
+                  :icon="Delete"
+                  @click="handleDelete(row._id)"
+                ></el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="个人安全设置" name="personal">
@@ -161,6 +241,38 @@
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="dialogVisible" title="添加手动赛事" width="500px">
+      <el-form :model="addForm" label-width="80px">
+        <el-form-item label="名称">
+          <el-input v-model="addForm.name" placeholder="如: 第 50 届 ICPC 昆明站" />
+        </el-form-item>
+        <el-form-item label="平台">
+          <el-select v-model="addForm.platform" style="width: 100%">
+            <el-option label="ICPC" value="ICPC" />
+            <el-option label="CCPC" value="CCPC" />
+            <el-option label="校内 (School)" value="School" />
+            <el-option label="牛客 (NowCoder)" value="NowCoder" />
+            <el-option label="其他 (Other)" value="Other" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="时间">
+          <el-date-picker
+            v-model="addForm.startTime"
+            type="datetime"
+            style="width: 100%"
+            placeholder="选择比赛开始时间"
+          />
+        </el-form-item>
+        <el-form-item label="链接">
+          <el-input v-model="addForm.link" placeholder="比赛主页链接 (选填)" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleAdd" :loading="adding">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -179,12 +291,34 @@ import {
   Key,
   Unlock,
   Check,
+  Plus,
+  Delete,
+  Trophy,
 } from '@element-plus/icons-vue'
 import { getSeasonApi, setSeasonApi, forceSettleApi, updatePasswordApi } from '@/api/config'
 import { refreshAllMembersApi } from '@/api/index'
+import http from '@/utils/http' // 🟢 新增
+import { formatDate } from '@/utils/helps' // 🟢 新增
+import dayjs from 'dayjs' // 🟢 新增
 
 const userStore = useUserStore()
 const activeTab = ref(userStore.isAdmin ? 'system' : 'personal')
+// 🟢 新增：刷新爬虫逻辑
+const refreshing = ref(false)
+
+const handleRefreshCrawler = async () => {
+  refreshing.value = true
+  try {
+    // 调用刚才写的后端接口
+    const res: any = await http.post('/upcoming/refresh')
+    ElMessage.success(res.message || `更新成功，抓取到 ${res.count} 场比赛`)
+    fetchManualList()
+  } catch (e: any) {
+    ElMessage.error(e.message || '更新失败')
+  } finally {
+    refreshing.value = false
+  }
+}
 
 // --- 赛季管理逻辑 ---
 const currentSeason = ref('Loading...')
@@ -278,6 +412,51 @@ const handleRecalculate = async () => {
   }
 }
 
+// =======================
+// 🟢 3. 手动赛事管理 (新增)
+// =======================
+const manualList = ref<any[]>([])
+const dialogVisible = ref(false)
+const adding = ref(false)
+const addForm = ref({ name: '', platform: 'ICPC', startTime: '', link: '' })
+
+const fetchManualList = async () => {
+  const res: any = await http.get('/upcoming')
+  if (res) {
+    manualList.value = res
+  }
+}
+
+// 判断哪一行是当前的首页目标
+const isTarget = (row: any) => {
+  const now = dayjs()
+  const futureContests = manualList.value
+    .filter((c) => dayjs(c.startTime).isAfter(now))
+    .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
+  return futureContests.length > 0 && futureContests[0]._id === row._id
+}
+
+const handleAdd = async () => {
+  if (!addForm.value.name || !addForm.value.startTime) return ElMessage.warning('请补全名称和时间')
+  adding.value = true
+  try {
+    await http.post('/upcoming', addForm.value)
+    ElMessage.success('添加成功')
+    dialogVisible.value = false
+    fetchManualList()
+    addForm.value = { name: '', platform: 'ICPC', startTime: '', link: '' }
+  } finally {
+    adding.value = false
+  }
+}
+
+const handleDelete = async (id: string) => {
+  await ElMessageBox.confirm('确定删除该赛事吗？', '提示', { type: 'warning' })
+  await http.delete(`/upcoming/${id}`)
+  ElMessage.success('删除成功')
+  fetchManualList()
+}
+
 // --- 修改密码逻辑 ---
 const pwdFormRef = ref<FormInstance>()
 const pwdForm = reactive({
@@ -328,6 +507,7 @@ const submitPasswordChange = async () => {
 onMounted(() => {
   if (userStore.isAdmin) {
     fetchSeason()
+    fetchManualList()
   }
 })
 </script>
@@ -352,6 +532,7 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-weight: bold;
 
     .header-left {
       display: flex;
@@ -365,6 +546,10 @@ onMounted(() => {
       font-size: 18px;
     }
   }
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
 }
 
 /* 赛季管理看板 */
@@ -520,5 +705,22 @@ onMounted(() => {
     margin-top: 10px;
     box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
   }
+}
+/* 🟢 新增：辅助样式 */
+.mb-4 {
+  margin-bottom: 16px;
+}
+.ml-2 {
+  margin-left: 8px;
+}
+.text-blue-500 {
+  color: #409eff;
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+.font-bold {
+  font-weight: bold;
 }
 </style>
