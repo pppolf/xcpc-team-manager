@@ -8,7 +8,14 @@
     </div>
 
     <el-row :gutter="24" class="mb-6">
-      <el-col :span="6" v-for="(item, index) in statsCards" :key="index">
+      <el-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+        v-for="(item, index) in statsCards"
+        :key="index"
+        class="responsive-col"
+      >
         <el-card shadow="hover" class="stat-card">
           <div class="stat-icon-wrapper" :class="item.colorClass">
             <el-icon :size="24"><component :is="item.icon" /></el-icon>
@@ -45,21 +52,21 @@
       </div>
 
       <el-row :gutter="20">
-        <el-col :span="8">
+        <el-col :xs="24" :sm="24" :md="8" class="responsive-col">
           <el-card shadow="hover" class="chart-card">
             <div class="chart-title">按难度解决题目计数</div>
             <div ref="barChartRef" class="chart-box"></div>
           </el-card>
         </el-col>
 
-        <el-col :span="8">
+        <el-col :xs="24" :sm="24" :md="8" class="responsive-col">
           <el-card shadow="hover" class="chart-card">
             <div class="chart-title">解决题目难度计数</div>
             <div ref="pieChartRef" class="chart-box"></div>
           </el-card>
         </el-col>
 
-        <el-col :span="8">
+        <el-col :xs="24" :sm="24" :md="8" class="responsive-col">
           <el-card shadow="hover" class="chart-card">
             <div class="chart-title">
               {{ timePeriod === '1y' ? '每月解题数' : '每日解题数' }}
@@ -71,7 +78,7 @@
     </div>
 
     <el-row :gutter="20" class="mb-6">
-      <el-col :span="12">
+      <el-col :xs="24" :md="12" class="responsive-col">
         <el-card shadow="hover" class="heatmap-card">
           <div class="chart-header flex justify-between">
             <span class="chart-title">每日解题数</span>
@@ -84,10 +91,12 @@
               <el-option v-for="y in availableYears" :key="y" :label="y" :value="y" />
             </el-select>
           </div>
-          <div ref="heatmapCountRef" class="chart-box-wide"></div>
+          <div class="heatmap-scroll-container">
+            <div ref="heatmapCountRef" class="chart-box-wide"></div>
+          </div>
         </el-card>
       </el-col>
-      <el-col :span="12">
+      <el-col :xs="24" :md="12" class="responsive-col">
         <el-card shadow="hover" class="heatmap-card">
           <div class="chart-header flex justify-between">
             <span class="chart-title">每日解题最大难度</span>
@@ -100,7 +109,9 @@
               <el-option v-for="y in availableYears" :key="y" :label="y" :value="y" />
             </el-select>
           </div>
-          <div ref="heatmapDiffRef" class="chart-box-wide"></div>
+          <div class="heatmap-scroll-container">
+            <div ref="heatmapDiffRef" class="chart-box-wide"></div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -190,7 +201,7 @@
           <el-input
             v-model="queryParams.title"
             placeholder="题目名称"
-            class="filter-input w-48"
+            class="filter-input w-60"
             clearable
             @keyup.enter="handleFilter"
           />
@@ -198,7 +209,7 @@
           <el-input
             v-model="queryParams.tags"
             placeholder="标签"
-            class="filter-input w-32"
+            class="filter-input w-36"
             clearable
             @keyup.enter="handleFilter"
           />
@@ -585,12 +596,13 @@ const changePeriod = (p: string) => {
 
 // 🟢 核心：渲染图表
 const renderCharts = (data: StatsData) => {
+  console.log(data);
   // 1. Bar Chart (Solve Count)
   if (chartsInstance.bar) chartsInstance.bar.dispose()
-  chartsInstance.bar = echarts.init(barChartRef.value)
+  chartsInstance.bar = echarts.init(barChartRef.value, null, { renderer: 'svg' })
   chartsInstance.bar.setOption({
     tooltip: { trigger: 'axis' },
-    grid: { top: 30, bottom: 50, left: 30, right: 10, containLabel: true },
+    grid: { top: 30, bottom: 50, left: 30, containLabel: true },
     xAxis: {
       type: 'category',
       data: DIFF_KEYS.map((k) => (k === '0' ? 'N/A' : k === '1-1199' ? '<1200' : k)),
@@ -612,7 +624,7 @@ const renderCharts = (data: StatsData) => {
 
   // 2. Pie Chart (Distribution)
   if (chartsInstance.pie) chartsInstance.pie.dispose()
-  chartsInstance.pie = echarts.init(pieChartRef.value)
+  chartsInstance.pie = echarts.init(pieChartRef.value, null, { renderer: 'svg' })
   chartsInstance.pie.setOption({
     tooltip: { trigger: 'item' },
     legend: {
@@ -642,7 +654,7 @@ const renderCharts = (data: StatsData) => {
 
   // 3. Stacked Bar (Activity)
   if (chartsInstance.activity) chartsInstance.activity.dispose()
-  chartsInstance.activity = echarts.init(activityChartRef.value)
+  chartsInstance.activity = echarts.init(activityChartRef.value, null, { renderer: 'svg' })
 
   // 构造堆叠数据
   const activitySeries = DIFF_KEYS.map((key) => ({
@@ -741,7 +753,7 @@ const renderHeatmaps = () => {
   }
 
   if (chartsInstance.hmCount) chartsInstance.hmCount.dispose()
-  chartsInstance.hmCount = echarts.init(heatmapCountRef.value)
+  chartsInstance.hmCount = echarts.init(heatmapCountRef.value, null, { renderer: 'svg' })
 
   chartsInstance.hmCount.setOption({
     tooltip: {
@@ -803,8 +815,7 @@ const renderHeatmaps = () => {
     calendar: {
       top: 30,
       left: 30,
-      right: 10,
-      cellSize: ['auto', 14],
+      cellSize: [13, 13],
       range: year,
       splitLine: { show: false },
       itemStyle: {
@@ -839,7 +850,7 @@ const renderHeatmaps = () => {
   ])
 
   if (chartsInstance.hmDiff) chartsInstance.hmDiff.dispose()
-  chartsInstance.hmDiff = echarts.init(heatmapDiffRef.value)
+  chartsInstance.hmDiff = echarts.init(heatmapDiffRef.value, null, { renderer: 'svg' })
 
   chartsInstance.hmDiff.setOption({
     tooltip: {
@@ -873,8 +884,7 @@ const renderHeatmaps = () => {
     calendar: {
       top: 30,
       left: 30,
-      right: 10,
-      cellSize: ['auto', 14],
+      cellSize: [13, 13],
       range: year,
       splitLine: { show: false },
       // 🟢 关键修改：同步右侧样式
@@ -1249,8 +1259,31 @@ onMounted(() => {
   align-items: center;
 }
 .chart-box-wide {
-  height: 200px;
+  height: 180px;
   width: 100%;
+  min-width: 720px;
+}
+
+.heatmap-scroll-container {
+  width: 100%;
+  overflow-x: auto; /* 水平滚动 */
+  overflow-y: hidden;
+  padding-bottom: 8px; /* 预留滚动条空间 */
+
+  /* 美化滚动条 (Chrome/Safari) */
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 3px;
+    &:hover {
+      background: #c0c4cc;
+    }
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 /* 4. Table Section (核心美化) */
@@ -1390,5 +1423,41 @@ onMounted(() => {
 }
 .max-w-\[80px\] {
   max-width: 80px;
+}
+
+/* 当屏幕宽度小于 992px (md断点) 时 */
+@media (max-width: 992px) {
+  /* 强制给每一列增加底部间距，防止堆叠时卡片粘在一起 */
+  .responsive-col {
+    margin-bottom: 20px;
+  }
+
+  /* 最后一个元素不需要底部间距（可选） */
+  .responsive-col:last-child {
+    margin-bottom: 0;
+  }
+
+  /* 调整容器内边距，手机上不需要那么宽的边距 */
+  .stats-container {
+    padding: 12px;
+  }
+
+  /* 调整头部布局，防止挤压 */
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    .sync-btn {
+      width: 100%; /* 按钮在手机上全宽更好点 */
+    }
+  }
+
+  /* 调整图表标题栏，防止换行错位 */
+  .chart-header,
+  .section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 </style>

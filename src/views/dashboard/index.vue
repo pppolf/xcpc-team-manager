@@ -337,7 +337,7 @@ const updateCharts = () => {
 // --- 初始化图表配置 (空数据) ---
 const initCharts = () => {
   if (statusChartRef.value) {
-    statusChart = echarts.init(statusChartRef.value)
+    statusChart = echarts.init(statusChartRef.value, null, { renderer: 'svg' })
     statusChart.setOption({
       tooltip: { trigger: 'item' },
       legend: { bottom: '0%', left: 'center' },
@@ -358,7 +358,7 @@ const initCharts = () => {
   }
 
   if (genderChartRef.value) {
-    genderChart = echarts.init(genderChartRef.value)
+    genderChart = echarts.init(genderChartRef.value, null, { renderer: 'svg' })
     genderChart.setOption({
       tooltip: { trigger: 'item' },
       legend: { bottom: '0%', left: 'center' },
