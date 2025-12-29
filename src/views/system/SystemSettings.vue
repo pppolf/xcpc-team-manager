@@ -117,7 +117,7 @@
           </template>
 
           <el-alert
-            title="规则说明：Codeforces/AtCoder 比赛会自动抓取。在此处添加的「未开始」且「时间最近」的比赛，将自动成为首页顶部的倒计时目标。"
+            title="规则说明：cf/at/nc 比赛会自动抓取。在此处添加的「未开始」且「时间最近」的线下比赛，将自动成为首页顶部的倒计时目标。"
             type="info"
             show-icon
             class="mb-4"
@@ -170,6 +170,120 @@
               </template>
             </el-table-column>
           </el-table>
+        </el-card>
+
+        <el-card shadow="hover" class="setting-card">
+          <template #header>
+            <div class="card-header">
+              <div class="header-left">
+                <el-icon class="header-icon"><Trophy /></el-icon>
+                <span>AtCoder Cookie 管理</span>
+              </div>
+              <el-tag :type="hasCookie ? 'success' : 'info'" size="small">
+                {{ hasCookie ? '已配置' : '未配置' }}
+              </el-tag>
+            </div>
+          </template>
+
+          <div class="card-content">
+            <el-alert
+              title="重要说明：AtCoder 反爬虫严格，爬取题目和提交记录必须配置管理员的登录 Cookie。"
+              type="warning"
+              show-icon
+              :closable="false"
+              class="mb-4"
+            />
+
+            <el-form :model="form" label-position="top">
+              <el-form-item label="AtCoder Cookie (REVEL_SESSION)">
+                <el-input
+                  v-model="form.cookieValue"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="粘贴完整的 Cookie 字符串，例如：REVEL_SESSION=..."
+                  clearable
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="saveCookie" :loading="loading">
+                  保存配置
+                </el-button>
+              </el-form-item>
+            </el-form>
+
+            <el-collapse class="mt-4 guide-collapse">
+              <el-collapse-item title="❓ 不知道怎么填？点击查看获取教程与示例" name="1">
+                <div class="guide-content">
+                  <el-steps direction="vertical" :active="3" finish-status="success">
+                    <el-step title="登录官网">
+                      <template #description>
+                        <p>
+                          使用 Chrome 或 Edge 浏览器访问
+                          <a href="https://atcoder.jp/login" target="_blank" class="link"
+                            >AtCoder 登录页面</a
+                          >
+                          并完成登录。
+                        </p>
+                      </template>
+                    </el-step>
+
+                    <el-step title="打开开发者工具 (F12)">
+                      <template #description>
+                        <p>
+                          按 <code>F12</code> 打开控制台，点击顶部菜单的
+                          <strong>Application (应用)</strong>。
+                        </p>
+                        <p>
+                          在左侧栏找到 <strong>Cookies</strong> ->
+                          <strong>https://atcoder.jp</strong>。
+                        </p>
+                      </template>
+                    </el-step>
+
+                    <el-step title="复制 REVEL_SESSION">
+                      <template #description>
+                        <p>
+                          找到名为 <code>REVEL_SESSION</code> 的行，复制它的
+                          <strong>Value</strong>。
+                        </p>
+
+                        <div class="devtools-mock">
+                          <div class="mock-header">
+                            <span>Name</span>
+                            <span>Value</span>
+                            <span>Domain</span>
+                          </div>
+                          <div class="mock-row target-row">
+                            <span class="col-name">REVEL_SESSION</span>
+                            <span class="col-value">Req7... (复制这串乱码)</span>
+                            <span>atcoder.jp</span>
+                          </div>
+                          <div class="mock-row">
+                            <span class="col-name">_ga</span>
+                            <span class="col-value">GA1.2...</span>
+                            <span>atcoder.jp</span>
+                          </div>
+                        </div>
+                      </template>
+                    </el-step>
+                  </el-steps>
+
+                  <div class="format-example">
+                    <p class="example-title">✅ 正确填入格式示例：</p>
+                    <el-alert type="success" :closable="false">
+                      <code class="code-block"
+                        >REVEL_SESSION=Req7%00... (后面通常是一长串字符)</code
+                      >
+                    </el-alert>
+                    <p class="note">
+                      注意：如果只复制了值，请手动在前面加上
+                      <code>REVEL_SESSION=</code>
+                    </p>
+                  </div>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
         </el-card>
       </el-tab-pane>
 
@@ -249,10 +363,10 @@
         </el-form-item>
         <el-form-item label="平台">
           <el-select v-model="addForm.platform" style="width: 100%">
+            <el-option label="XCPC" value="XCPC" />
             <el-option label="ICPC" value="ICPC" />
             <el-option label="CCPC" value="CCPC" />
             <el-option label="校内 (School)" value="School" />
-            <el-option label="牛客 (NowCoder)" value="NowCoder" />
             <el-option label="其他 (Other)" value="Other" />
           </el-select>
         </el-form-item>
@@ -295,11 +409,55 @@ import {
   Delete,
   Trophy,
 } from '@element-plus/icons-vue'
-import { getSeasonApi, setSeasonApi, forceSettleApi, updatePasswordApi } from '@/api/config'
+import {
+  getSeasonApi,
+  setSeasonApi,
+  forceSettleApi,
+  updatePasswordApi,
+  getAtCoderCookie,
+  setAtCoderCookie,
+} from '@/api/config'
 import { refreshAllMembersApi } from '@/api/index'
 import http from '@/utils/http' // 🟢 新增
 import { formatDate } from '@/utils/helps' // 🟢 新增
 import dayjs from 'dayjs' // 🟢 新增
+
+// AtCoder 配置
+const loading = ref(false)
+const hasCookie = ref(false) // 从后端获取状态
+const form = reactive({
+  cookieValue: 'REVEL_SESSION=',
+})
+const fetchCookie = async () => {
+  const cookie = await getAtCoderCookie()
+  if (cookie) {
+    hasCookie.value = true
+    form.cookieValue = cookie
+  }
+}
+const saveCookie = async () => {
+  if (!form.cookieValue) {
+    ElMessage.warning('请填写 Cookie 内容')
+    return
+  }
+
+  // 简单的格式校验
+  if (!form.cookieValue.includes('REVEL_SESSION=')) {
+    // 也可以在这里自动给它补上前缀
+    form.cookieValue = `REVEL_SESSION=${form.cookieValue.trim()}`
+  }
+
+  loading.value = true
+  try {
+    await setAtCoderCookie(form.cookieValue)
+    ElMessage.success('Cookie 保存成功')
+    hasCookie.value = true
+    loading.value = false
+  } catch (error: any) {
+    console.log(error)
+    loading.value = false
+  }
+}
 
 const userStore = useUserStore()
 const activeTab = ref(userStore.isAdmin ? 'system' : 'personal')
@@ -314,7 +472,7 @@ const handleRefreshCrawler = async () => {
     ElMessage.success(res.message || `更新成功，抓取到 ${res.count} 场比赛`)
     fetchManualList()
   } catch (e: any) {
-    ElMessage.error(e.message || '更新失败')
+    console.log(e)
   } finally {
     refreshing.value = false
   }
@@ -444,7 +602,7 @@ const handleAdd = async () => {
     ElMessage.success('添加成功')
     dialogVisible.value = false
     fetchManualList()
-    addForm.value = { name: '', platform: 'ICPC', startTime: '', link: '' }
+    addForm.value = { name: '', platform: 'XCPC', startTime: '', link: '' }
   } finally {
     adding.value = false
   }
@@ -498,7 +656,7 @@ const submitPasswordChange = async () => {
         userStore.logout()
         location.reload()
       } catch (e) {
-        ElMessage.error(e || '修改失败')
+        console.log(e)
       }
     }
   })
@@ -508,6 +666,7 @@ onMounted(() => {
   if (userStore.isAdmin) {
     fetchSeason()
     fetchManualList()
+    fetchCookie()
   }
 })
 </script>
@@ -710,6 +869,9 @@ onMounted(() => {
 .mb-4 {
   margin-bottom: 16px;
 }
+.mt-4 {
+  margin-top: 16px;
+}
 .ml-2 {
   margin-left: 8px;
 }
@@ -722,5 +884,87 @@ onMounted(() => {
 }
 .font-bold {
   font-weight: bold;
+}
+
+.link {
+  color: var(--el-color-primary);
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* 教程区域样式 */
+.guide-content {
+  padding: 10px;
+}
+
+/* 模拟 DevTools 样式 */
+.devtools-mock {
+  margin-top: 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 12px;
+
+  .mock-header {
+    background: #f5f7fa;
+    padding: 5px 10px;
+    border-bottom: 1px solid #ebeef5;
+    display: grid;
+    grid-template-columns: 150px 1fr 100px;
+    color: #909399;
+    font-weight: bold;
+  }
+
+  .mock-row {
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: 150px 1fr 100px;
+    border-bottom: 1px solid #ebeef5;
+    color: #606266;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.target-row {
+      background-color: #f0f9eb; /* 高亮行 */
+      color: #67c23a;
+      font-weight: bold;
+
+      .col-value {
+        color: #67c23a;
+      }
+    }
+
+    .col-value {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 10px;
+    }
+  }
+}
+
+.format-example {
+  margin-top: 20px;
+
+  .example-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .code-block {
+    font-family: Consolas, Monaco, monospace;
+    font-weight: bold;
+  }
+
+  .note {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 5px;
+  }
 }
 </style>

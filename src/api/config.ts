@@ -25,3 +25,13 @@ export const updatePasswordApi = (data: {oldPassword: string, newPassword: strin
 export const resetUserPasswordApi = (data: { userId: string, newPassword: string }) => {
   return http.post('/users/reset-password', data);
 };
+
+// AtCoder Cookie 管理
+export const getAtCoderCookie = () => {
+  return http.get<string>('/config/atcoder_cookie');
+}
+export const setAtCoderCookie = (cookieValue: string) => {
+  return http.post('/config/atcoder_cookie', {
+    cookieValue
+  })
+}
