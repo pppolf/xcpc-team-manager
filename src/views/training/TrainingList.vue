@@ -48,7 +48,16 @@
                 :show-text="false"
                 :stroke-width="8"
               />
-              <div class="time-tip">{{ formatDate(item.startTime) }} 开始</div>
+              <div class="time-tip">
+                持续时间 {{ formatTime(item.startTime) }} ——
+                {{
+                  formatTime(
+                    new Date(
+                      new Date(item.startTime).getTime() + item.duration * 1000,
+                    ).toISOString(),
+                  )
+                }}
+              </div>
             </div>
           </el-card>
         </el-col>
@@ -62,7 +71,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getTrainingListApi, type Training } from '@/api/training'
-import { formatDate } from '@/utils/helps'
+import { formatTime } from '@/utils/helps'
 import TrainingEditor from './TrainingEditor.vue'
 import { useUserStore } from '@/stores/user'
 import { Edit } from '@element-plus/icons-vue'

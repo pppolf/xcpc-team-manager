@@ -125,7 +125,7 @@
                 <img src="https://img.icons8.com/emoji/48/party-popper.png" width="24" />
               </div>
               <div class="honor-content">
-                <div class="honor-text">{{ honor.title }}</div>
+                <div class="honor-text" @click="showHonorDetail(honor.hid)">{{ honor.title }}</div>
                 <div class="honor-date">{{ formatDate(honor.eventDate) }}</div>
               </div>
             </div>
@@ -408,6 +408,10 @@ const showNoticeDetail = (nid: number) => {
   router.push({ path: `/admin/notice/${nid}`, replace: true })
 }
 
+const showHonorDetail = (hid: number) => {
+  router.push({ path: `/admin/honor/${hid}`, replace: true })
+}
+
 watch(memberList, () => {
   if (statusChart && genderChart) {
     updateCharts()
@@ -585,6 +589,13 @@ onUnmounted(() => {
         .honor-text {
           font-size: 14px;
           color: #303133;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          cursor: pointer;
+          &:hover {
+            color: #409eff;
+          }
           line-height: 1.4;
           font-weight: 500;
         }

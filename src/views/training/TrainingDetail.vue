@@ -187,7 +187,6 @@ const loadData = async () => {
   loading.value = true
   try {
     const res = await getTrainingDetailApi(id)
-    console.log(res)
     info.value = res
   } finally {
     loading.value = false

@@ -86,12 +86,12 @@ export const deleteContestRecordApi = (id: string) => {
 // 刷新刷题数
 export const refreshUserSolvedApi = (userId: string) => {
   // 返回结构对应后端 CrawlerController 的 result
-  return http.post<{ previous: number; current: number; increment: number }>('/crawler/refresh', {
+  return http.post<{ previous: number; current: number; increment: number; errors: string[] }>('/crawler/refresh', {
     userId,
   })
 }
 
-// 刷新全队比赛Rating和赛季Rating
+// 获取刷题总数并且刷新全队比赛Rating和赛季Rating
 export const refreshAllMembersApi = () => {
   return http.post<CrawlerBatchResult>('/crawler/refresh-all', {}) // 设置 2分钟超时
 }

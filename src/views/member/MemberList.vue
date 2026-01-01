@@ -163,6 +163,9 @@
               <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">
                 删除
               </el-button>
+              <el-button type="success" link @click="updateProblemSolved(row)">
+                刷新题量
+              </el-button>
               <el-button type="warning" link @click="handleResetPassword(row)">
                 重置密码
               </el-button>
@@ -461,6 +464,7 @@ import {
   deleteMemberApi,
   updateMemberApi,
   getUserDetailApi,
+  refreshUserSolvedApi,
 } from '@/api'
 import type { User, Role, TShirtSize, UserParams } from '@/types/user'
 import { Search, Refresh, Plus, Edit, Delete, RefreshRight, View } from '@element-plus/icons-vue'
@@ -551,6 +555,25 @@ const handleView = async (row: User) => {
   } catch (error) {
     console.error(error)
     ElMessage.error('获取详情失败')
+  }
+}
+
+const updateProblemSolved = async (row: User) => {
+  try {
+    await ElMessageBox.confirm(`确定要重新同步 ${row.realName} 的刷题总数吗?`, '提示', { type: 'primary' })
+    try {
+      const res = await refreshUserSolvedApi(row._id as string)
+      if (res.errors.length > 0) {
+        ElMessage.warning(`${row.realName} 部分同步成功, 新增 ${res.increment} 题， 失败信息: ${res.errors}`)
+      } else {
+        ElMessage.success(`${row.realName} 同步成功, 新增: ${res.increment} 题`)
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+    fetchData()
+  } catch (e: any) {
+    console.log(e);
   }
 }
 

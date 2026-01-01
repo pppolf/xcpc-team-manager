@@ -41,7 +41,9 @@
           </div>
         </el-form>
       </el-card>
-      <div class="login-footer">© 2025 XCPC Training Team. All Rights Reserved.</div>
+      <div class="login-footer">
+        © 2025 — {{ new Date().getFullYear() }} XCPC 集训队管理系统 | 版权所有.
+      </div>
     </div>
   </div>
 </template>

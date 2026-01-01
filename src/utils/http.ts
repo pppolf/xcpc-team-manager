@@ -9,7 +9,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 // 1. 创建 axios 实例
 const service: AxiosInstance = axios.create({
   baseURL: '/api', // 后端地址
-  timeout: 10000, // 超时时间
+  timeout: 50000, // 超时时间
   headers: { 'Content-Type': 'application/json' },
 })
 

@@ -82,7 +82,7 @@
                 </div>
                 <div class="tool-content">
                   <h4>全量数据重算</h4>
-                  <p>重新计算所有用户的 Rating 总分。</p>
+                  <p>获取刷题总数并且刷新全队比赛Rating和赛季Rating。</p>
                   <el-button type="primary" plain size="small" @click="handleRecalculate"
                     >开始重算</el-button
                   >
@@ -553,7 +553,7 @@ const handleSwitchSeason = async () => {
 const handleForceSettle = async () => {
   try {
     await ElMessageBox.confirm('确定要强制执行上月结算吗？', '提示')
-    await forceSettleApi()
+    forceSettleApi()
     ElMessage.success('结算指令已发送')
   } catch (e) {
     ElMessage.info(`取消: ${e}`)
