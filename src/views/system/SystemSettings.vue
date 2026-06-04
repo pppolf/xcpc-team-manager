@@ -413,6 +413,7 @@ import {
   getSeasonApi,
   setSeasonApi,
   forceSettleApi,
+  recalculateRatingsApi,
   updatePasswordApi,
   getAtCoderCookie,
   setAtCoderCookie,
@@ -563,7 +564,8 @@ const handleForceSettle = async () => {
 const handleRecalculate = async () => {
   try {
     await ElMessageBox.confirm('这将重新爬取所有人的题目并重算 Rating, 耗时较长。', '提示')
-    refreshAllMembersApi()
+    await refreshAllMembersApi()
+    await recalculateRatingsApi()
     ElMessage.success('任务已在后台启动')
   } catch (e) {
     ElMessage.info(`取消: ${e}`)

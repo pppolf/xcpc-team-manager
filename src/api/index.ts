@@ -1,6 +1,6 @@
 // src/api/index.ts
 import http from '@/utils/http'
-import type { User, UserParams } from '@/types/user'
+import type { ActiveMemberExportRow, TrainingTeam, User, UserParams } from '@/types/user'
 import type { CrawlerBatchResult, PageResult, ContestsParam, RefreshTarget } from '@/types/api' // 引入刚才定义的类型
 import type { LeaderboardResponse } from '@/types/rating'
 
@@ -39,6 +39,14 @@ export const deleteMemberApi = (studentId: string) => {
 // 6. 更新成员
 export const updateMemberApi = (id: string, user: Partial<User>) => {
   return http.put<User>(`/users/${id}`, user)
+}
+
+export const batchUpdateMemberTeamApi = (userIds: string[], trainingTeam: TrainingTeam) => {
+  return http.put<void>('/users/batch/team', { userIds, trainingTeam })
+}
+
+export const exportActiveMembersApi = () => {
+  return http.get<ActiveMemberExportRow[]>('/users/export/active')
 }
 
 export const getUserProfileApi = () => {

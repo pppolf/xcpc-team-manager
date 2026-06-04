@@ -50,7 +50,7 @@
 
         <el-table-column label="队员" min-width="180">
           <template #default="{ row }">
-            <div class="user-info" :class="{ 'retired-user': row.isRetired }">
+            <div class="user-info" :class="row.isRetired ? 'retired-user' : ''">
               <div class="user-text">
                 <div class="name">
                   <el-tooltip v-if="row.isRetired" content="已退役" placement="top">
@@ -86,6 +86,15 @@
                     style="margin-left: 4px"
                     >学生教练</el-tag
                   >
+                  <el-tag
+                    size="small"
+                    :type="getTrainingTeamType(row.trainingTeam)"
+                    effect="plain"
+                    round
+                    style="margin-left: 4px"
+                  >
+                    {{ formatTrainingTeam(row.trainingTeam) }}
+                  </el-tag>
                 </div>
                 <div class="sub">{{ row.college }} · {{ row.studentId }}</div>
               </div>
@@ -95,7 +104,7 @@
 
         <el-table-column prop="total" label="总 Rating" width="160" align="center">
           <template #default="{ row }">
-            <span class="total-score" :class="{ 'retired-score': row.isRetired }">{{
+            <span class="total-score" :class="row.isRetired ? 'retired-score' : ''">{{
               row.total
             }}</span>
           </template>
@@ -178,6 +187,18 @@ const getCoefColor = (val: number) => {
   if (val >= 1.0) return 'success'
   if (val >= 0.8) return 'warning'
   return 'danger'
+}
+
+const formatTrainingTeam = (team?: string) => {
+  if (team === 'First') return '一队'
+  if (team === 'Second') return '二队'
+  return '未分队'
+}
+
+const getTrainingTeamType = (team?: string) => {
+  if (team === 'First') return 'success'
+  if (team === 'Second') return 'primary'
+  return 'info'
 }
 
 // 表格行样式：退役变灰，前三名高亮
@@ -376,5 +397,83 @@ onMounted(() => {
 }
 :deep(.el-table .row-bronze) {
   background: linear-gradient(90deg, #fffbf9 0%, #ffffff 100%);
+}
+
+@media screen and (max-width: 768px) {
+  .leaderboard-container {
+    .banner-card {
+      padding: 20px 16px 28px;
+      margin-bottom: -12px;
+      border-radius: 12px;
+
+      .banner-content {
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .title-section {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .main-title {
+        font-size: clamp(22px, 6vw, 28px);
+        line-height: 1.2;
+        white-space: nowrap;
+      }
+
+      .sub-title {
+        margin-top: 6px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .filter-section {
+        flex-shrink: 0;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+
+        .season-label {
+          margin-right: 0;
+          font-size: 12px;
+        }
+
+        .season-select {
+          width: 140px;
+        }
+      }
+    }
+
+    .table-card {
+      margin: 0;
+      border-radius: 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+
+      :deep(.el-table) {
+        min-width: 720px;
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 520px) {
+  .leaderboard-container {
+    .banner-card {
+      .banner-content {
+        flex-direction: column;
+      }
+
+      .main-title {
+        white-space: normal;
+      }
+
+      .filter-section,
+      .filter-section .season-select {
+        width: 100%;
+      }
+    }
+  }
 }
 </style>

@@ -7,6 +7,15 @@
           <span class="subtitle">管理所有队员信息、状态及竞赛数据</span>
         </div>
         <div class="action-area" v-if="userStore.isAdmin">
+          <el-button
+            type="success"
+            plain
+            :icon="Download"
+            :loading="exporting"
+            @click="handleExportActiveMembers"
+          >
+            导出现役队员
+          </el-button>
           <el-button type="warning" plain :icon="Refresh" @click="handleOpenBatchRefresh">
             批量刷新数据
           </el-button>
@@ -69,6 +78,18 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :xs="12" :sm="6" :md="4" :lg="3">
+            <el-form-item label="队伍">
+              <el-select v-model="filterForm.trainingTeam" placeholder="全部" clearable>
+                <el-option
+                  v-for="team in trainingTeamOptions"
+                  :key="team.value"
+                  :label="team.label"
+                  :value="team.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
 
           <el-col :xs="24" :sm="24" :md="8" :lg="24" class="btn-col">
             <div class="search-btns">
@@ -81,7 +102,40 @@
     </el-card>
 
     <el-card shadow="never" class="table-card">
-      <el-table :data="tableData" stripe style="width: 100%" v-loading="loading" size="large">
+      <div v-if="userStore.isAdmin" class="batch-toolbar">
+        <div class="batch-summary">已选择 {{ selectedMembers.length }} 名队员</div>
+        <el-select
+          v-model="batchTrainingTeam"
+          placeholder="调整到队伍"
+          class="batch-team-select"
+          :disabled="selectedMembers.length === 0"
+        >
+          <el-option
+            v-for="team in trainingTeamOptions"
+            :key="team.value"
+            :label="team.label"
+            :value="team.value"
+          />
+        </el-select>
+        <el-button
+          type="primary"
+          :disabled="selectedMembers.length === 0 || !batchTrainingTeam"
+          :loading="batchUpdating"
+          @click="handleBatchUpdateTeam"
+        >
+          批量调整队伍
+        </el-button>
+      </div>
+
+      <el-table
+        :data="tableData"
+        stripe
+        style="width: 100%"
+        v-loading="loading"
+        size="large"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column v-if="userStore.isAdmin" type="selection" width="48" fixed />
         <el-table-column prop="realName" label="姓名" width="100" fixed>
           <template #default="{ row }">
             <span class="name-text">{{ row.realName }}</span>
@@ -109,6 +163,14 @@
         </el-table-column>
 
         <el-table-column prop="grade" label="年级" min-width="100" sortable />
+
+        <el-table-column prop="trainingTeam" label="队伍" min-width="80" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getTrainingTeamType(row.trainingTeam)" effect="plain">
+              {{ formatTrainingTeam(row.trainingTeam) }}
+            </el-tag>
+          </template>
+        </el-table-column>
 
         <el-table-column prop="status" label="状态" min-width="100">
           <template #default="{ row }">
@@ -290,6 +352,18 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
+                  <el-form-item label="所在队伍" prop="trainingTeam">
+                    <el-select v-model="form.trainingTeam" style="width: 100%">
+                      <el-option
+                        v-for="team in trainingTeamOptions"
+                        :key="team.value"
+                        :label="team.label"
+                        :value="team.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
                   <el-form-item label="当前状态" prop="status">
                     <el-radio-group v-model="form.status">
                       <el-radio-button label="Active">在役</el-radio-button>
@@ -385,6 +459,9 @@
           <el-descriptions-item label="学院">{{ currentUser.college }}</el-descriptions-item>
           <el-descriptions-item label="专业">{{ currentUser.professional }}</el-descriptions-item>
           <el-descriptions-item label="年级">{{ currentUser.grade }}</el-descriptions-item>
+          <el-descriptions-item label="队伍">
+            {{ formatTrainingTeam(currentUser.trainingTeam) }}
+          </el-descriptions-item>
           <el-descriptions-item label="性别">{{ currentUser.gender }}</el-descriptions-item>
           <el-descriptions-item label="手机号">{{ currentUser.phone }}</el-descriptions-item>
           <el-descriptions-item label="邮箱" :span="2">{{
@@ -463,11 +540,13 @@ import {
   addMemberApi,
   deleteMemberApi,
   updateMemberApi,
+  batchUpdateMemberTeamApi,
+  exportActiveMembersApi,
   getUserDetailApi,
   refreshUserSolvedApi,
 } from '@/api'
-import type { User, Role, TShirtSize, UserParams } from '@/types/user'
-import { Search, Refresh, Plus, Edit, Delete, RefreshRight, View } from '@element-plus/icons-vue'
+import type { TrainingTeam, User, Role, TShirtSize, UserParams } from '@/types/user'
+import { Search, Refresh, Plus, Edit, Delete, RefreshRight, View, Download } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import BatchRefreshDrawer from './components/BatchRefreshDrawer.vue'
 import UserContestHistory from './components/UserContestHistory.vue'
@@ -476,10 +555,18 @@ import { useUserStore } from '@/stores/user'
 
 const roleOptions: Role[] = ['Captain', 'Vice-Captain', 'Student-Coach', 'Member']
 const tsizeOptions: TShirtSize[] = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL']
+const trainingTeamOptions: Array<{ label: string; value: TrainingTeam }> = [
+  { label: '一队', value: 'First' },
+  { label: '二队', value: 'Second' },
+]
 
 const loading = ref(false)
 const submitting = ref(false)
+const batchUpdating = ref(false)
+const exporting = ref(false)
 const tableData = ref<User[]>([])
+const selectedMembers = ref<User[]>([])
+const batchTrainingTeam = ref<TrainingTeam>()
 const dialogVisible = ref(false)
 const viewVisible = ref(false)
 const currentUser = ref<User | null>(null)
@@ -501,6 +588,7 @@ const filterForm = reactive<Record<string, string>>({
   gender: '',
   role: '',
   status: '',
+  trainingTeam: '',
 })
 
 const initialForm: User = {
@@ -518,6 +606,7 @@ const initialForm: User = {
   tsize: 'L',
   role: 'Member',
   status: 'Active',
+  trainingTeam: 'Second',
   rating: 0,
   problemNumber: 0,
   createdAt: '',
@@ -530,6 +619,7 @@ const rules = reactive<FormRules<User>>({
   username: [{ required: true, message: '必须填写登录账号', trigger: 'blur' }],
   role: [{ required: true, message: '必须选择角色', trigger: 'change' }],
   status: [{ required: true, message: '必须选择状态', trigger: 'change' }],
+  trainingTeam: [{ required: true, message: '必须选择所在队伍', trigger: 'change' }],
   realName: [{ required: true, message: '真实姓名必填', trigger: 'blur' }],
   gender: [{ required: true, message: '性别必选', trigger: 'change' }],
   tsize: [{ required: true, message: 'T恤尺寸必选', trigger: 'change' }],
@@ -611,6 +701,167 @@ const getRoleType = (role: Role) => {
   return 'info'
 }
 
+const formatTrainingTeam = (team?: TrainingTeam) => {
+  const map: Record<TrainingTeam, string> = {
+    First: '一队',
+    Second: '二队',
+  }
+  return team ? map[team] : '未分队'
+}
+
+const getTrainingTeamType = (team?: TrainingTeam) => {
+  if (team === 'First') return 'success'
+  if (team === 'Second') return 'primary'
+  return 'info'
+}
+
+const handleSelectionChange = (rows: User[]) => {
+  selectedMembers.value = rows
+}
+
+const handleBatchUpdateTeam = async () => {
+  if (!batchTrainingTeam.value) return ElMessage.warning('请选择要调整到的队伍')
+  const targetTeam = batchTrainingTeam.value
+  const userIds = selectedMembers.value.map((user) => user._id).filter((id): id is string => Boolean(id))
+
+  if (userIds.length === 0) return ElMessage.warning('请选择要调整的队员')
+
+  batchUpdating.value = true
+  try {
+    await batchUpdateMemberTeamApi(userIds, targetTeam)
+    ElMessage.success(`已将 ${userIds.length} 名队员调整到${formatTrainingTeam(targetTeam)}`)
+    batchTrainingTeam.value = undefined
+    selectedMembers.value = []
+    fetchData()
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('批量调整队伍失败')
+  } finally {
+    batchUpdating.value = false
+  }
+}
+
+const escapeExcelCell = (value: unknown) => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+type ExcelCell = string | { value: string; text?: boolean }
+
+const renderExcelCell = (cell: ExcelCell) => {
+  const value = typeof cell === 'string' ? cell : cell.value
+  const textStyle = typeof cell === 'string' || !cell.text ? '' : ' style=\'mso-number-format:"\\@";\''
+  return `<td${textStyle}>${escapeExcelCell(value)}</td>`
+}
+
+const asTextCell = (value: unknown): ExcelCell => ({ value: String(value ?? ''), text: true })
+
+const downloadExcelFile = (filename: string, rows: ExcelCell[][]) => {
+  const tableRows = rows
+    .map((row) => `<tr>${row.map(renderExcelCell).join('')}</tr>`)
+    .join('')
+  const content = `
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+      </head>
+      <body>
+        <table>${tableRows}</table>
+      </body>
+    </html>
+  `
+  const blob = new Blob(['\ufeff', content], { type: 'application/vnd.ms-excel;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const handleExportActiveMembers = async () => {
+  exporting.value = true
+  try {
+    const activeMembers = await exportActiveMembersApi()
+
+    if (activeMembers.length === 0) {
+      return ElMessage.warning('暂无现役队员可导出')
+    }
+
+    const rows = [
+      [
+        '姓名',
+        '学号',
+        '登录账号',
+        '性别',
+        '学院',
+        '专业',
+        '年级',
+        '队伍',
+        '角色',
+        '手机号',
+        '身份证号',
+        '邮箱',
+        'T恤尺寸',
+        'Codeforces账号',
+        'AtCoder账号',
+        '牛客账号',
+        '洛谷账号',
+        '校内OJ账号',
+        'VJudge账号',
+        'Codeforces刷题数',
+        'AtCoder刷题数',
+        '牛客刷题数',
+        '洛谷刷题数',
+        '校内OJ刷题数',
+        '总刷题数',
+      ],
+      ...activeMembers.map((member) => [
+        member.realName,
+        asTextCell(member.studentId),
+        asTextCell(member.username),
+        member.gender,
+        member.college,
+        member.professional,
+        member.grade,
+        formatTrainingTeam(member.trainingTeam),
+        formatRole(member.role),
+        asTextCell(member.phone),
+        asTextCell(member.idCard),
+        member.email,
+        member.tsize,
+        asTextCell(member.ojInfo?.cf),
+        asTextCell(member.ojInfo?.at),
+        asTextCell(member.ojInfo?.nc),
+        asTextCell(member.ojInfo?.lg),
+        asTextCell(member.ojInfo?.cwnuoj),
+        asTextCell(member.ojInfo?.vjudge),
+        String(member.ojStats?.codeforces ?? 0),
+        String(member.ojStats?.atcoder ?? 0),
+        String(member.ojStats?.nowcoder ?? 0),
+        String(member.ojStats?.luogu ?? 0),
+        String(member.ojStats?.cwnuoj ?? 0),
+        String(member.problemNumber ?? 0),
+      ]),
+    ]
+
+    const date = new Date().toISOString().slice(0, 10)
+    downloadExcelFile(`现役队员名单-${date}.xls`, rows)
+    ElMessage.success(`已导出 ${activeMembers.length} 名现役队员`)
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('导出现役队员失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
 const fetchData = async () => {
   loading.value = true
   const params: UserParams = {
@@ -623,6 +874,7 @@ const fetchData = async () => {
     ...(filterForm.gender && { gender: filterForm.gender }),
     ...(filterForm.role && { role: filterForm.role }),
     ...(filterForm.status && { status: filterForm.status }),
+    ...(filterForm.trainingTeam && { trainingTeam: filterForm.trainingTeam }),
   }
   try {
     const res = await getMembersApi(params)
@@ -775,6 +1027,21 @@ onMounted(() => {
   }
   .table-card {
     border: none;
+    .batch-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .batch-summary {
+      color: #606266;
+      font-size: 13px;
+    }
+    .batch-team-select {
+      width: 140px;
+    }
     .name-text {
       font-weight: 600;
       color: #303133;
@@ -821,6 +1088,135 @@ onMounted(() => {
 }
 
 /* 详情弹窗样式 */
+@media screen and (max-width: 1024px) {
+  .member-list-container {
+    .filter-card {
+      .filter-header {
+        align-items: flex-start;
+        gap: 14px;
+
+        .title-area {
+          min-width: 0;
+        }
+
+        .action-area {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-start;
+
+          .el-button {
+            margin-left: 0;
+          }
+        }
+      }
+    }
+
+    .table-card {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+
+      .batch-toolbar {
+        justify-content: flex-start;
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .member-list-container {
+    .filter-card {
+      .filter-header {
+        flex-direction: column;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+
+        h3 {
+          font-size: 17px;
+        }
+
+        .subtitle {
+          display: block;
+          margin: 4px 0 0;
+          line-height: 1.5;
+        }
+
+        .action-area {
+          width: 100%;
+
+          .el-button {
+            flex: 1 1 calc(50% - 8px);
+          }
+        }
+      }
+
+      .filter-form {
+        :deep(.el-form-item) {
+          margin-bottom: 10px;
+        }
+
+        .btn-col,
+        .search-btns {
+          width: 100%;
+        }
+
+        .search-btns {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+
+          .el-button {
+            margin-left: 0;
+          }
+        }
+      }
+    }
+
+    .table-card {
+      :deep(.el-card__body) {
+        padding-left: 0;
+        padding-right: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      :deep(.el-table) {
+        min-width: 900px;
+      }
+
+      .batch-toolbar {
+        padding: 0 12px;
+        align-items: stretch;
+
+        .batch-summary {
+          width: 100%;
+        }
+
+        .batch-team-select,
+        .el-button {
+          flex: 1 1 100%;
+          width: 100%;
+        }
+      }
+    }
+
+    .pagination-wrapper {
+      justify-content: center;
+      padding: 0 10px 4px;
+    }
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .member-list-container {
+    .filter-card {
+      .filter-header .action-area .el-button {
+        flex-basis: 100%;
+      }
+    }
+  }
+}
+
 .user-profile {
   .profile-header {
     display: flex;

@@ -5,6 +5,7 @@ export type Gender = '男' | '女'
 export type TShirtSize = 'S' | 'M' | 'L' | 'XL' | 'XXL' | 'XXXL' | 'XXXXL'
 export type Role = 'Teacher' | 'Captain' | 'Student-Coach' | 'Member' | 'Vice-Captain'
 export type Status = 'Active' | 'Retired'
+export type TrainingTeam = 'First' | 'Second'
 
 // 2. 子对象接口
 export interface OjInfo {
@@ -49,6 +50,7 @@ export interface User {
   tsize: TShirtSize // 必填
   role: Role // 必填
   status: Status // 必填
+  trainingTeam?: TrainingTeam
 
   // 以下新增时不需要填，有默认值
   avatar: string
@@ -71,6 +73,7 @@ export interface UserParams {
   gender?: string
   role?: string
   status?: string
+  trainingTeam?: string
   studentId?: string
   username?: string
   [key: string]: string | number | undefined // 允许索引访问
@@ -87,4 +90,24 @@ export interface LoginResult {
   success: boolean
   user?: User
   message: string
+}
+
+export interface ActiveMemberExportRow {
+  username: string
+  realName: string
+  gender: Gender | string
+  college: string
+  professional: string
+  grade: string
+  studentId: string
+  phone: string
+  idCard: string
+  email: string
+  tsize: TShirtSize | string
+  role: Role | string
+  status: Status | string
+  trainingTeam?: TrainingTeam
+  problemNumber: number
+  ojInfo?: OjInfo
+  ojStats?: Partial<ojStats>
 }

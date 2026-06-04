@@ -20,6 +20,7 @@
                 {{ item.type === 'TRAINING' ? '日常训练' : '考核赛' }}
               </el-tag>
               <el-tag effect="plain" v-if="item.platform === 'VJUDGE'">Vjudge</el-tag>
+              <el-tag effect="plain" type="warning" v-if="item.platform === 'NOWCODER'">牛客</el-tag>
               <el-button
                 v-if="userStore.isAdmin"
                 type="primary"
@@ -34,7 +35,10 @@
 
             <div class="meta">
               <span>共 {{ item.problemCount }} 题</span>
-              <span class="target">目标: {{ item.targetCount }}</span>
+              <span class="target">
+                一队: {{ item.targetCountFirst ?? item.targetCount }} / 二队:
+                {{ item.targetCountSecond ?? item.targetCount }}
+              </span>
             </div>
 
             <div class="progress-box">

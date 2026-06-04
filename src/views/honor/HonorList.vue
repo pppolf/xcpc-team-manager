@@ -198,8 +198,9 @@ onMounted(() => loadData())
   margin-bottom: 20px;
 }
 .text-ellipsis-2 {
-  display: box;
-  box-orient: vertical;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
 }

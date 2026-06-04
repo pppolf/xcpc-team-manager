@@ -212,6 +212,7 @@ const parseData = async () => {
       tsize: (VALID_TSIZES.includes(upperTsize) ? upperTsize : 'L') as TShirtSize,
       role: 'Member',
       status: 'Active',
+      trainingTeam: 'Second',
       rating: 0,
       problemNumber: 0,
       ojInfo: {

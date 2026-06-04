@@ -44,6 +44,11 @@
                   {{ formatRole(userInfo.role) }}
                 </el-tag>
               </el-descriptions-item>
+              <el-descriptions-item label="所在队伍">
+                <el-tag size="small" :type="getTrainingTeamType(userInfo.trainingTeam)" effect="plain" round>
+                  {{ formatTrainingTeam(userInfo.trainingTeam) }}
+                </el-tag>
+              </el-descriptions-item>
               <el-descriptions-item label="注册时间">
                 {{ formatDate(userInfo.createdAt || '') }}
               </el-descriptions-item>
@@ -285,6 +290,18 @@ const getRoleType = (role: string) => {
   if (role === 'Captain') return 'warning'
   if (role === 'Vice-Captain') return 'warning'
   if (role === 'Student-Coach') return 'primary'
+  return 'info'
+}
+
+const formatTrainingTeam = (team?: string) => {
+  if (team === 'First') return '一队'
+  if (team === 'Second') return '二队'
+  return '未分队'
+}
+
+const getTrainingTeamType = (team?: string) => {
+  if (team === 'First') return 'success'
+  if (team === 'Second') return 'primary'
   return 'info'
 }
 

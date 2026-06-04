@@ -2,6 +2,7 @@
 export type Gender = '男' | '女'
 export type Role = 'Teacher' | 'Captain' | 'Student-Coach' | 'Member' | 'Vice-Captain'
 export type Status = 'Active' | 'Retired'
+export type TrainingTeam = 'First' | 'Second'
 
 // 2. 首页用户信息接口
 export interface IUser {
@@ -14,6 +15,7 @@ export interface IUser {
   grade: string
   role: Role
   status: Status
+  trainingTeam?: TrainingTeam
   problemNumber: number
   rating: number
 }

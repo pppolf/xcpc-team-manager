@@ -7,12 +7,12 @@
       </div>
       <div class="right">
         <el-button
-          v-if="info.platform === 'VJUDGE'"
+          v-if="isRemotePlatform"
           type="primary"
           :loading="syncing"
           @click="handleRefresh"
         >
-          <el-icon><Refresh /></el-icon> 同步 Vjudge
+          <el-icon><Refresh /></el-icon> 同步 {{ platformName }}
         </el-button>
 
         <el-button
@@ -22,13 +22,19 @@
         >
           <el-icon><Upload /></el-icon> 导入成绩
         </el-button>
-        <el-button type="danger" plain v-show="userStore.isAdmin" @click="handleDelete"
-          >删除</el-button
-        >
+        <el-button type="danger" plain v-show="userStore.isAdmin" @click="handleDelete">
+          删除
+        </el-button>
       </div>
     </div>
 
-    <el-card shadow="never" class="mt-4" v-if="info.platform === 'VJUDGE'">
+    <el-card shadow="never" class="target-card mt-4">
+      <el-tag type="success" effect="plain">一队达标：{{ info.targetCountFirst ?? info.targetCount }}</el-tag>
+      <el-tag type="warning" effect="plain">二队达标：{{ info.targetCountSecond ?? info.targetCount }}</el-tag>
+      <span class="target-tip">每位队员会按当前所属队伍计算达标状态。</span>
+    </el-card>
+
+    <el-card shadow="never" class="mt-4" v-if="isRemotePlatform">
       <el-table :data="sortedRanklist" stripe style="width: 100%">
         <el-table-column type="index" label="#" width="60" align="center" />
 
@@ -52,23 +58,24 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" width="128" align="center">
           <template #default="{ row }">
             <el-tag v-if="row.isAK" type="warning" effect="dark">AK</el-tag>
             <el-tag v-else-if="row.isPassed" type="success">达标</el-tag>
             <el-tag v-else type="info">未达标</el-tag>
+            <div class="target-text">目标 {{ getRowTarget(row) }}</div>
           </template>
         </el-table-column>
 
         <el-table-column
           v-for="index in info.problemCount"
           :key="index"
-          :label="String.fromCharCode(64 + index)"
+          :label="getProblemLabel(index)"
           align="center"
           min-width="50"
         >
           <template #default="{ row }">
-            <div class="problem-cell" :class="{ 'is-ac': isAC(row, index - 1) }">
+            <div class="problem-cell" :class="getProblemCellClass(row, index - 1)">
               <span v-if="isAC(row, index - 1)">✓</span>
             </div>
           </template>
@@ -95,6 +102,7 @@
             <el-tag v-if="row.isAK" type="warning" effect="dark" size="large">AK 全场</el-tag>
             <el-tag v-else-if="row.isPassed" type="success" size="large">已达标</el-tag>
             <el-tag v-else type="info" size="large">未达标</el-tag>
+            <div class="target-text">目标 {{ getRowTarget(row) }}</div>
           </template>
         </el-table-column>
 
@@ -106,7 +114,7 @@
         </el-table-column>
 
         <el-table-column label="Rank / Total" align="center">
-          <template #default="{ _, $index }">
+          <template #default="{ $index }">
             <span class="font-mono">
               <span class="font-bold">{{ $index + 1 }}</span>
               <span class="text-gray-400 mx-1">/</span>
@@ -122,13 +130,11 @@
         <p>请直接从 Excel 复制两列或三列数据粘贴到下方：</p>
         <p class="code-box">姓名 [Tab] 过题数 [Tab] 学号(可选)</p>
         <p>示例：</p>
-        <pre class="bg-gray-100 p-2 rounded">
-张三	5	2021001
+        <pre class="bg-gray-100 p-2 rounded">张三	5	2021001
 李四	3
-王五	8	2021003</pre
-        >
+王五	8	2021003</pre>
         <p class="text-orange-500 mt-2">
-          注意：系统会自动匹配所有【在役队员】，未在名单中的在役队员过题数将记为 0。
+          注意：系统会自动匹配所有在役队员，未在名单中的在役队员过题数将记为 0。
         </p>
       </div>
       <el-input v-model="importContent" type="textarea" :rows="10" placeholder="请在此粘贴..." />
@@ -151,7 +157,7 @@ import {
   importTrainingDataApi,
 } from '@/api/training'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Back, Upload } from '@element-plus/icons-vue'
+import { Refresh, Upload } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
@@ -164,22 +170,29 @@ const syncing = ref(false)
 const info = ref<Training>({
   _id: '',
   title: '',
+  type: 'TRAINING',
+  platform: 'LOCAL',
   problemCount: 0,
+  targetCount: 0,
+  targetCountFirst: 0,
+  targetCountSecond: 0,
+  startTime: '',
+  duration: 0,
   ranklist: [],
-} as any)
+})
 const importDialogVisible = ref(false)
 const importContent = ref('')
 const importing = ref(false)
 
-// 排序：优先按题数降序
+const isRemotePlatform = computed(() => ['VJUDGE', 'NOWCODER'].includes(info.value.platform))
+const platformName = computed(() => (info.value.platform === 'NOWCODER' ? '牛客' : 'Vjudge'))
+
 const sortedRanklist = computed(() => {
   return [...(info.value.ranklist || [])].sort((a, b) => {
-    // 优先按题数降序
     if (a.solved !== b.solved) {
       return b.solved - a.solved
     }
-    // 题数相同，按罚时升序 (越小越好)
-    return a.penalty - b.penalty
+    return (a.penalty || 0) - (b.penalty || 0)
   })
 })
 
@@ -200,7 +213,7 @@ const handleRefresh = async () => {
     info.value = res
     ElMessage.success('同步成功')
   } catch (e) {
-    ElMessage.error(`同步失败，请检查 Vjudge 连接: ${e}`)
+    ElMessage.error(`同步失败，请检查 ${platformName.value} 连接: ${e}`)
   } finally {
     syncing.value = false
   }
@@ -223,7 +236,7 @@ const handleImport = async () => {
     info.value = res
     ElMessage.success('导入成功')
     importDialogVisible.value = false
-    importContent.value = '' // 清空
+    importContent.value = ''
   } catch (e: any) {
     console.error(e)
   } finally {
@@ -231,12 +244,38 @@ const handleImport = async () => {
   }
 }
 
-// 辅助函数：判断某题是否通过
-// 后端存的是 map: { "0": { accepted: true }, "1": ... }
+const getProblemLabel = (index: number) => {
+  let result = ''
+  let current = index
+
+  while (current > 0) {
+    current -= 1
+    result = String.fromCharCode(65 + (current % 26)) + result
+    current = Math.floor(current / 26)
+  }
+
+  return result
+}
+
 const isAC = (row: any, index: number) => {
-  // 注意：MongoDB Map 在 JSON 中可能表现为对象，key 是字符串
-  const status = row.problemStatus && row.problemStatus[String(index)]
-  return status?.accepted
+  const status = row.problemStatus || {}
+  const label = getProblemLabel(index + 1)
+  return Boolean(
+    status[String(index)]?.accepted ||
+      status[label]?.accepted ||
+      status[label.toLowerCase()]?.accepted,
+  )
+}
+
+const getProblemCellClass = (row: any, index: number) => (isAC(row, index) ? 'is-ac' : '')
+
+const getRowTarget = (row: any) => {
+  if (Number.isFinite(Number(row.targetCount)) && Number(row.targetCount) > 0) {
+    return Number(row.targetCount)
+  }
+  if (row.trainingTeam === 'First') return info.value.targetCountFirst ?? info.value.targetCount
+  if (row.trainingTeam === 'Second') return info.value.targetCountSecond ?? info.value.targetCount
+  return info.value.targetCount
 }
 
 const getScoreClass = (row: any) => {
@@ -245,13 +284,11 @@ const getScoreClass = (row: any) => {
   return 'text-gray'
 }
 
-// 🟢 2. 增加时间格式化函数 (秒 -> HH:MM:SS)
 const formatDuration = (seconds: number) => {
   if (!seconds) return '00:00:00'
   const h = Math.floor(seconds / 3600)
   const m = Math.floor((seconds % 3600) / 60)
   const s = seconds % 60
-  // 补零操作
   const pad = (n: number) => n.toString().padStart(2, '0')
   return `${pad(h)}:${pad(m)}:${pad(s)}`
 }
@@ -264,6 +301,31 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+}
+.left,
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.right {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.target-card :deep(.el-card__body) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.target-tip,
+.target-text {
+  color: #909399;
+  font-size: 12px;
+}
+.target-text {
+  margin-top: 4px;
 }
 .title {
   font-size: 20px;
@@ -278,8 +340,6 @@ onMounted(loadData)
 .font-bold {
   font-weight: bold;
 }
-
-/* 题目格子样式 */
 .problem-cell {
   width: 100%;
   height: 30px;
@@ -293,7 +353,6 @@ onMounted(loadData)
   color: #67c23a;
   font-weight: bold;
 }
-
 .text-ak {
   color: #e6a23c;
   font-weight: bold;
@@ -306,8 +365,6 @@ onMounted(loadData)
 .text-gray {
   color: #909399;
 }
-
-/* 导入提示代码块 */
 .code-box {
   background: #f4f4f5;
   padding: 4px 8px;
@@ -316,5 +373,22 @@ onMounted(loadData)
   margin: 5px 0;
   display: inline-block;
   color: #e6a23c;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .left,
+  .right {
+    width: 100%;
+  }
+  .right {
+    justify-content: flex-start;
+  }
+  .title {
+    font-size: 18px;
+  }
 }
 </style>

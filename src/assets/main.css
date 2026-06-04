@@ -1,1 +1,318 @@
 @import "tailwindcss";
+
+:root {
+  --app-bg: #f3f6fb;
+  --app-card-radius: 14px;
+  --app-mobile-gutter: 12px;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--app-bg);
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+.el-card {
+  border-radius: var(--app-card-radius);
+}
+
+.el-card__body {
+  min-width: 0;
+}
+
+.el-table {
+  width: 100%;
+}
+
+.el-table__inner-wrapper,
+.el-table__body-wrapper {
+  min-width: 0;
+}
+
+.el-table .cell {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.el-table th .cell {
+  white-space: nowrap;
+}
+
+.el-radio-group,
+.el-button-group {
+  flex-wrap: wrap;
+}
+
+.el-pagination {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.el-form-item__content {
+  min-width: 0;
+}
+
+.el-select,
+.el-input,
+.el-date-editor.el-input,
+.el-date-editor.el-input__wrapper,
+.el-input-number {
+  max-width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-container,
+  .stats-container,
+  .member-list-container,
+  .leaderboard-container,
+  .profile-container,
+  .settings-container,
+  .training-list-container,
+  .training-detail,
+  .honor-list-container,
+  .honor-manage,
+  .honor-detail-container,
+  .notice-container,
+  .notice-manage,
+  .notice-detail-container,
+  .editor-container,
+  .apply-container,
+  .manage-container,
+  .import-container,
+  .retirement-apply,
+  .retirement-approval,
+  .history-container {
+    max-width: 100% !important;
+  }
+
+  .el-dialog {
+    width: min(92vw, 720px) !important;
+  }
+
+  .el-drawer {
+    max-width: 92vw;
+  }
+
+  .el-table {
+    font-size: 13px;
+  }
+
+  .el-card + .el-card {
+    margin-top: 14px;
+  }
+
+  .filter-bar,
+  .filter-header,
+  .card-header,
+  .page-header,
+  .toolbar,
+  .batch-toolbar,
+  .header-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .el-tabs__header {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .el-tabs__nav-wrap {
+    min-width: max-content;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --app-card-radius: 12px;
+  }
+
+  .el-card__body {
+    padding: 14px;
+  }
+
+  .dashboard-container,
+  .stats-container,
+  .member-list-container,
+  .leaderboard-container,
+  .profile-container,
+  .settings-container,
+  .training-list-container,
+  .training-detail,
+  .honor-list-container,
+  .honor-manage,
+  .honor-detail-container,
+  .notice-container,
+  .notice-manage,
+  .notice-detail-container,
+  .editor-container,
+  .apply-container,
+  .manage-container,
+  .import-container,
+  .retirement-apply,
+  .retirement-approval,
+  .history-container {
+    padding: 0 !important;
+  }
+
+  .el-dialog {
+    width: calc(100vw - 20px) !important;
+    margin-top: 8vh !important;
+  }
+
+  .el-dialog__body {
+    padding: 14px 16px;
+    max-height: 68vh;
+    overflow-y: auto;
+  }
+
+  .el-dialog__footer {
+    padding: 10px 16px 16px;
+  }
+
+  .el-drawer {
+    width: 100vw !important;
+    max-width: 100vw;
+  }
+
+  .el-drawer__body {
+    padding: 14px;
+  }
+
+  .el-form {
+    --el-form-label-font-size: 13px;
+  }
+
+  .el-form-item {
+    margin-bottom: 14px;
+  }
+
+  .el-form-item__label {
+    line-height: 1.35;
+  }
+
+  .el-dialog .el-col-12,
+  .el-dialog .el-col-8,
+  .el-dialog .el-col-6,
+  .el-dialog .el-col-4,
+  .el-dialog .el-col-3,
+  .editor-container .el-col-18,
+  .editor-container .el-col-6,
+  .settings-container .el-col-12,
+  .manage-container .el-col-12,
+  .el-form .el-col-12,
+  .el-form .el-col-8,
+  .el-form .el-col-6,
+  .el-form .el-col-4,
+  .el-form .el-col-3 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .el-row {
+    row-gap: 2px;
+  }
+
+  .el-button + .el-button {
+    margin-left: 0;
+  }
+
+  .el-button {
+    min-height: 34px;
+  }
+
+  .el-card .el-button {
+    white-space: normal;
+  }
+
+  .el-card .el-button:not(.el-button--text):not(.is-link) {
+    flex: 1 1 auto;
+  }
+
+  .el-pagination {
+    justify-content: center;
+  }
+
+  .el-pagination .el-pagination__jump {
+    margin-left: 0;
+  }
+
+  .el-radio-button__inner {
+    padding: 8px 12px;
+  }
+
+  .el-table {
+    font-size: 12px;
+  }
+
+  .el-table__fixed,
+  .el-table__fixed-right {
+    box-shadow: none !important;
+  }
+
+  .el-table .cell {
+    padding: 0 8px;
+  }
+
+  .el-message-box {
+    width: calc(100vw - 28px) !important;
+  }
+
+  .el-popover.el-popper {
+    max-width: calc(100vw - 24px);
+  }
+
+  .el-descriptions {
+    --el-descriptions-table-border: 1px solid var(--el-border-color-lighter);
+  }
+
+  .el-descriptions__table {
+    display: block;
+  }
+
+  .el-descriptions__body,
+  .el-descriptions__table tbody,
+  .el-descriptions__table tr,
+  .el-descriptions__table th,
+  .el-descriptions__table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .el-descriptions__label {
+    border-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .el-card__body {
+    padding: 12px;
+  }
+
+  .el-form-item {
+    display: block;
+  }
+
+  .el-form-item__label {
+    justify-content: flex-start;
+    width: auto !important;
+    margin-bottom: 6px;
+  }
+
+  .el-form-item__content {
+    margin-left: 0 !important;
+  }
+}

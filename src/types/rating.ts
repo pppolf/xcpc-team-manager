@@ -5,6 +5,7 @@ export interface RankItem {
   studentId: string
   college: string
   role: string
+  trainingTeam?: string
   total: number
   contest: number
   practice: number

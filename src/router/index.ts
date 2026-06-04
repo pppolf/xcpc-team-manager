@@ -51,6 +51,18 @@ const router = createRouter({
               meta: { title: '队员列表' },
             },
             {
+              path: 'retirement-apply',
+              name: 'RetirementApply',
+              component: () => import('@/views/member/RetirementApply.vue'),
+              meta: { title: '退队申请' },
+            },
+            {
+              path: 'retirement-approval',
+              name: 'RetirementApproval',
+              component: () => import('@/views/member/RetirementApproval.vue'),
+              meta: { title: '退队审批' },
+            },
+            {
               path: 'import',
               name: 'MemberImport',
               component: () => import('@/views/member/MemberImport.vue'),

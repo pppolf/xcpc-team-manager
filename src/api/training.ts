@@ -4,10 +4,13 @@ export interface Training {
   _id: string
   title: string
   type: 'TRAINING' | 'ASSESSMENT'
-  platform: 'VJUDGE' | 'LOCAL'
-  vjudgeContestId: string
+  platform: 'VJUDGE' | 'NOWCODER' | 'LOCAL'
+  vjudgeContestId?: string
+  nowcoderContestId?: string
   problemCount: number
   targetCount: number
+  targetCountFirst?: number
+  targetCountSecond?: number
   startTime: string
   duration: number
   ranklist: any[]

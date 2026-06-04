@@ -2,12 +2,12 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑训练计划' : '新建训练计划'"
-    width="500px"
+    width="560px"
     destroy-on-close
   >
-    <el-form :model="form" label-width="100px">
+    <el-form :model="form" label-width="108px">
       <el-form-item label="训练标题">
-        <el-input v-model="form.title" placeholder="例如：2025寒假第一场积分赛" />
+        <el-input v-model="form.title" placeholder="例如：牛客周赛 Round 144" />
       </el-form-item>
 
       <el-form-item label="类型">
@@ -20,15 +20,18 @@
       <el-form-item label="数据来源">
         <el-radio-group v-model="form.platform">
           <el-radio label="VJUDGE">Vjudge 自动抓取</el-radio>
+          <el-radio label="NOWCODER">牛客周赛</el-radio>
           <el-radio label="LOCAL">手动导入</el-radio>
         </el-radio-group>
       </el-form-item>
 
-      <template v-if="form.platform === 'VJUDGE'">
-        <el-form-item label="Vjudge ID">
-          <el-input v-model="form.vjudgeContestId" placeholder="填写URL最后的数字，如 769279" />
-        </el-form-item>
-      </template>
+      <el-form-item v-if="form.platform === 'VJUDGE'" label="Vjudge ID">
+        <el-input v-model="form.vjudgeContestId" placeholder="填写 URL 最后的数字，如 769279" />
+      </el-form-item>
+
+      <el-form-item v-if="form.platform === 'NOWCODER'" label="牛客 ID">
+        <el-input v-model="form.nowcoderContestId" placeholder="填写牛客比赛 ID，如 135882" />
+      </el-form-item>
 
       <el-form-item label="开始时间">
         <el-date-picker
@@ -43,18 +46,17 @@
         <el-input-number v-model="durationHours" :min="0.1" :max="9999" :step="0.5" />
       </el-form-item>
 
-      <el-row>
-        <el-col :span="12">
-          <el-form-item label="总题数">
-            <el-input-number v-model="form.problemCount" :min="1" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="达标数">
-            <el-input-number v-model="form.targetCount" :min="1" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <div class="target-grid">
+        <el-form-item label="总题数">
+          <el-input-number v-model="form.problemCount" :min="1" />
+        </el-form-item>
+        <el-form-item label="一队达标">
+          <el-input-number v-model="form.targetCountFirst" :min="0" />
+        </el-form-item>
+        <el-form-item label="二队达标">
+          <el-input-number v-model="form.targetCountSecond" :min="0" />
+        </el-form-item>
+      </div>
     </el-form>
 
     <template #footer>
@@ -68,7 +70,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { createTrainingApi, updateTrainingApi } from '@/api/training' // 🟢 引入 update
+import { createTrainingApi, updateTrainingApi } from '@/api/training'
 import { ElMessage } from 'element-plus'
 
 const emit = defineEmits(['success'])
@@ -79,70 +81,82 @@ const isEdit = ref(false)
 const editId = ref('')
 const durationHours = ref(5)
 
-const form = ref({
+const createDefaultForm = () => ({
   title: '',
   type: 'TRAINING',
   platform: 'VJUDGE',
   vjudgeContestId: '',
+  nowcoderContestId: '',
   startTime: new Date(),
   problemCount: 10,
   targetCount: 5,
+  targetCountFirst: 5,
+  targetCountSecond: 3,
   duration: 0,
 })
 
-// 🟢 暴露给父组件的方法
+const form = ref(createDefaultForm())
+
 const open = (row?: any) => {
   visible.value = true
   if (row) {
-    // 编辑模式：回显数据
     isEdit.value = true
     editId.value = row._id
+    const fallbackTarget = row.targetCount || 0
     form.value = {
       title: row.title,
       type: row.type,
       platform: row.platform,
-      vjudgeContestId: row.vjudgeContestId,
-      startTime: new Date(row.startTime), // 字符串转 Date
+      vjudgeContestId: row.vjudgeContestId || '',
+      nowcoderContestId: row.nowcoderContestId || '',
+      startTime: new Date(row.startTime),
       problemCount: row.problemCount,
-      targetCount: row.targetCount,
+      targetCount: fallbackTarget,
+      targetCountFirst: row.targetCountFirst ?? fallbackTarget,
+      targetCountSecond: row.targetCountSecond ?? fallbackTarget,
       duration: row.duration,
     }
-    // 计算小时数
     durationHours.value = parseFloat((row.duration / 3600).toFixed(1))
   } else {
-    // 新建模式：重置数据
     isEdit.value = false
     editId.value = ''
-    form.value = {
-      title: '',
-      type: 'TRAINING',
-      platform: 'VJUDGE',
-      vjudgeContestId: '',
-      startTime: new Date(),
-      problemCount: 10,
-      targetCount: 5,
-      duration: 0,
-    }
+    form.value = createDefaultForm()
     durationHours.value = 5
   }
 }
 
-// 暴露 open 方法
 defineExpose({ open })
+
+const normalizePlatformIds = () => {
+  if (form.value.platform === 'VJUDGE') {
+    form.value.nowcoderContestId = ''
+  } else if (form.value.platform === 'NOWCODER') {
+    form.value.vjudgeContestId = ''
+  } else {
+    form.value.vjudgeContestId = ''
+    form.value.nowcoderContestId = ''
+  }
+}
 
 const submit = async () => {
   if (!form.value.title) return ElMessage.warning('请输入标题')
+  if (form.value.platform === 'VJUDGE' && !form.value.vjudgeContestId) {
+    return ElMessage.warning('请输入 Vjudge 比赛 ID')
+  }
+  if (form.value.platform === 'NOWCODER' && !form.value.nowcoderContestId) {
+    return ElMessage.warning('请输入牛客比赛 ID')
+  }
 
   loading.value = true
   try {
-    form.value.duration = Math.floor(durationHours.value * 3600) // 转秒
+    form.value.duration = Math.floor(durationHours.value * 3600)
+    form.value.targetCount = Math.min(form.value.targetCountFirst, form.value.targetCountSecond)
+    normalizePlatformIds()
 
     if (isEdit.value) {
-      // 🟢 更新逻辑
       await updateTrainingApi(editId.value, form.value)
       ElMessage.success('修改成功')
     } else {
-      // 🟢 创建逻辑
       await createTrainingApi(form.value)
       ElMessage.success('创建成功')
     }
@@ -156,3 +170,38 @@ const submit = async () => {
   }
 }
 </script>
+
+<style scoped>
+.target-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.target-grid :deep(.el-form-item) {
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.target-grid :deep(.el-form-item__label) {
+  width: auto !important;
+  flex: 0 0 auto;
+  padding-right: 8px;
+}
+
+.target-grid :deep(.el-form-item__content) {
+  flex: 1 1 96px;
+  min-width: 96px;
+}
+
+.target-grid :deep(.el-input-number) {
+  width: 100%;
+  min-width: 96px;
+}
+
+@media (max-width: 640px) {
+  .target-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

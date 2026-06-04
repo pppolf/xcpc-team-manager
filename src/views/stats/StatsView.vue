@@ -43,7 +43,7 @@
             v-for="p in ['7d', '30d', '1y']"
             :key="p"
             class="filter-btn"
-            :class="{ active: timePeriod === p }"
+            :class="timePeriod === p ? 'active' : ''"
             @click="changePeriod(p)"
           >
             {{ p.toUpperCase() }}
@@ -130,7 +130,7 @@
             <template #reference>
               <div class="filter-btn-trigger">
                 <span class="text-gray-500 mr-1">来源筛选:</span>
-                <span class="font-medium text-gray-700 truncate max-w-[80px]">
+                <span class="font-medium text-gray-700 truncate max-w-20">
                   {{
                     queryParams.sources.length ? queryParams.sources.length + ' selected' : 'All'
                   }}
@@ -805,7 +805,7 @@ const renderHeatmaps = () => {
       itemHeight: 10,
       textStyle: { fontSize: 14, color: '#999' },
       pieces: [
-        { min: 5, color: '#216e39', label: 'More' },
+        { min: 5, max: 999, color: '#216e39', label: 'More' },
         { min: 3, max: 4, color: '#30a14e' },
         { min: 1, max: 2, color: '#9be9a8' },
         // 这里保留 Less 标签用于图例，但实际灰色背景由 calendar.itemStyle 控制
@@ -869,7 +869,7 @@ const renderHeatmaps = () => {
       itemHeight: 10,
       textStyle: { fontSize: 14, color: '#999' },
       pieces: [
-        { min: 3000, color: '#aa0000', label: '3000+' },
+        { min: 3000, max: 9999, color: '#aa0000', label: '3000+' },
         { min: 2600, max: 2999, color: '#ff3333', label: '2600+' },
         { min: 2400, max: 2599, color: '#ff7777', label: '2400+' },
         { min: 2100, max: 2399, color: '#ffcc88', label: '2100+' },

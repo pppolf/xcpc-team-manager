@@ -93,7 +93,8 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  padding: 24px;
   /* 使用深色渐变背景，显得更专业 */
   background: linear-gradient(135deg, #1c2438 0%, #3a527f 100%);
   background-size: cover;
@@ -102,6 +103,7 @@ const handleLogin = async () => {
 .login-box {
   text-align: center;
   z-index: 1;
+  width: min(420px, 100%);
 }
 
 .login-header {
@@ -122,7 +124,7 @@ const handleLogin = async () => {
 }
 
 .login-card {
-  width: 420px;
+  width: 100%;
   border-radius: 12px;
   /* 让卡片稍微透明一点，透出背景 */
   background: rgba(255, 255, 255, 0.95);
@@ -186,5 +188,38 @@ const handleLogin = async () => {
   margin-top: 30px;
   color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
+}
+
+@media screen and (max-width: 480px) {
+  .login-container {
+    align-items: flex-start;
+    padding: 42px 14px 20px;
+  }
+
+  .login-header {
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .logo-icon {
+    margin-right: 0;
+  }
+
+  .login-header h2 {
+    font-size: 22px;
+    line-height: 1.35;
+  }
+
+  .login-card {
+    padding: 12px 4px;
+    border-radius: 16px;
+  }
+
+  .login-footer {
+    margin-top: 18px;
+    padding: 0 8px;
+    line-height: 1.5;
+  }
 }
 </style>

@@ -1,14 +1,14 @@
 <template>
   <el-container class="layout-container">
-    <div v-if="isMobile && isSidebarOpen" class="drawer-bg" @click="closeSidebar"></div>
+    <div v-if="isCompact && isSidebarOpen" class="drawer-bg" @click="closeSidebar"></div>
 
     <el-aside
       width="220px"
       class="aside-menu"
-      :class="{
-        'mobile-hidden': isMobile && !isSidebarOpen,
-        'mobile-show': isMobile && isSidebarOpen,
-      }"
+      :class="[
+        isCompact && !isSidebarOpen ? 'mobile-hidden' : '',
+        isCompact && isSidebarOpen ? 'mobile-show' : '',
+      ]"
     >
       <div class="brand">
         <el-icon :size="24" color="#409EFF"><Trophy /></el-icon>
@@ -42,6 +42,14 @@
           <el-menu-item index="/admin/member/list">队员列表</el-menu-item>
           <el-menu-item index="/admin/member/import" v-if="userStore.isAdmin"
             >导入队员</el-menu-item
+          >
+          <el-menu-item
+            index="/admin/member/retirement-apply"
+            v-if="userStore.userInfo?.role !== 'Teacher' && userStore.userInfo?.status === 'Active'"
+            >退队申请</el-menu-item
+          >
+          <el-menu-item index="/admin/member/retirement-approval" v-if="userStore.isAdmin"
+            >退队审批</el-menu-item
           >
         </el-sub-menu>
 
@@ -111,13 +119,13 @@
     <el-container>
       <el-header class="layout-header">
         <div class="header-left">
-          <div class="hamburger-container" v-if="isMobile" @click="toggleSidebar">
+          <div class="hamburger-container" v-if="isCompact" @click="toggleSidebar">
             <el-icon :size="24">
               <component :is="isSidebarOpen ? 'Fold' : 'Expand'" />
             </el-icon>
           </div>
 
-          <el-breadcrumb separator="/" v-if="!isMobile">
+          <el-breadcrumb separator="/" v-if="!isCompact">
             <el-breadcrumb-item>XCPC 系统</el-breadcrumb-item>
             <el-breadcrumb-item>{{ route.meta.title || '首页' }}</el-breadcrumb-item>
           </el-breadcrumb>
@@ -156,7 +164,7 @@
                   v-for="item in notiStore.list"
                   :key="item._id"
                   class="noti-item"
-                  :class="{ unread: !item.isRead }"
+                  :class="!item.isRead ? 'unread' : ''"
                   @click="handleRead(item)"
                 >
                   <div class="noti-icon">
@@ -179,7 +187,7 @@
                   {{ userStore.userInfo?.realName?.charAt(0) }}
                 </span>
               </el-avatar>
-              <span class="username" v-if="!isMobile">{{ userStore.userInfo?.realName }}</span>
+              <span class="username" v-if="!isCompact">{{ userStore.userInfo?.realName }}</span>
               <el-icon class="el-icon--right"><CaretBottom /></el-icon>
             </div>
             <template #dropdown>
@@ -249,14 +257,14 @@ const activeMenu = computed(() => {
 // ==========================================
 // 🟢 响应式核心逻辑 (Start)
 // ==========================================
-const isMobile = ref(false)
+const isCompact = ref(false)
 const isSidebarOpen = ref(false)
 
 // 1. 检测是否为移动端 (宽度 < 768px)
 const checkIsMobile = () => {
   const rect = document.body.getBoundingClientRect()
-  isMobile.value = rect.width < 768
-  if (!isMobile.value) {
+  isCompact.value = rect.width <= 1024
+  if (!isCompact.value) {
     // 如果切回电脑版，强制关闭侧边栏状态(恢复默认显示)
     isSidebarOpen.value = false
   }
@@ -276,7 +284,7 @@ const closeSidebar = () => {
 watch(
   () => route.path,
   () => {
-    if (isMobile.value) {
+    if (isCompact.value) {
       closeSidebar()
     }
   },
@@ -344,6 +352,8 @@ const handleLogout = () => {
 <style scoped lang="scss">
 .layout-container {
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   position: relative; /* 关键：为遮罩层提供定位基准 */
 }
 
@@ -362,14 +372,14 @@ const handleLogout = () => {
 /* =========================================
    🟢 核心：手机端响应式样式
    ========================================= */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1024px) {
   /* 手机端侧边栏变为固定定位，脱离文档流 */
   .aside-menu {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    width: 220px !important;
+    width: min(78vw, 280px) !important;
   }
 
   /* 隐藏状态：移出屏幕左侧 */
@@ -380,17 +390,46 @@ const handleLogout = () => {
   /* 显示状态：滑入屏幕 */
   .mobile-show {
     transform: translate3d(0, 0, 0);
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 10px 0 30px rgba(15, 23, 42, 0.25);
   }
 
   /* Header 调整 */
   .layout-header {
-    padding: 0 10px;
+    height: 56px;
+    padding: 0 14px;
   }
 
   .layout-main {
     width: 100%;
-    overflow-x: hidden;
+    padding: 16px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .aside-menu {
+    width: min(82vw, 280px) !important;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .layout-header {
+    height: 52px;
+    padding: 0 10px;
+  }
+
+  .layout-main {
+    padding: 10px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .mobile-title {
+    max-width: 52vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
@@ -400,7 +439,7 @@ const handleLogout = () => {
   opacity: 0.3;
   width: 100%;
   height: 100%;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 2000; /* 比侧边栏低，比内容高 */
@@ -446,6 +485,8 @@ const handleLogout = () => {
 .layout-main {
   background-color: #f0f2f5;
   padding: 20px;
+  overflow: auto;
+  min-width: 0;
 }
 
 .header-right {
@@ -549,9 +590,10 @@ const handleLogout = () => {
   color: #909399;
   line-height: 1.4;
   margin-bottom: 4px;
-  display: box;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
   line-clamp: 2;
-  box-orient: vertical;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .noti-time {
