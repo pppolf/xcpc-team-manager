@@ -21,6 +21,7 @@ export interface StatsData {
 export interface SubmissionParams {
   page: number
   size: number
+  userId?: string
   source?: string
   keyword?: string
 }
@@ -49,8 +50,8 @@ export interface DashboardStats {
   // ... 其他图表数据类型
 }
 
-export const getChartDataApi = (period: string) => {
-  return http.get<any>('/stats/charts', { period })
+export const getChartDataApi = (period: string, userId?: string) => {
+  return http.get<StatsData>('/stats/charts', { period, ...(userId && { userId }) })
 }
 
 // 获取表格数据

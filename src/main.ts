@@ -1,5 +1,6 @@
 // src/main.ts
 import './assets/main.css'
+import './utils/markdown'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

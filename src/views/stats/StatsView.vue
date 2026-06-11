@@ -1,10 +1,38 @@
 <template>
   <div class="stats-container" v-loading="loading">
     <div class="header-actions">
-      <div class="page-title">CP Traker —— 算法竞赛解题数据统计</div>
-      <el-button type="primary" color="#626aef" class="sync-btn" @click="openSyncDialog">
-        <el-icon class="mr-2"><Refresh /></el-icon> 同步 OJ 数据
-      </el-button>
+      <div class="header-main">
+        <div class="page-title">CP Traker —— 算法竞赛解题数据统计</div>
+        <div v-if="viewingUserLabel" class="viewer-subtitle">
+          当前查看：{{ viewingUserLabel }}
+        </div>
+      </div>
+      <div class="header-tools">
+        <el-select
+          v-if="userStore.isAdmin"
+          v-model="viewingUserId"
+          filterable
+          remote
+          reserve-keyword
+          clearable
+          :remote-method="searchMembers"
+          :loading="memberLoading"
+          placeholder="切换成员"
+          class="member-switcher"
+          @change="handleViewingUserChange"
+          @clear="handleViewingUserClear"
+        >
+          <el-option
+            v-for="member in memberOptions"
+            :key="member._id || member.username"
+            :label="formatMemberOption(member)"
+            :value="member._id || ''"
+          />
+        </el-select>
+        <el-button type="primary" color="#626aef" class="sync-btn" @click="openSyncDialog">
+          <el-icon class="mr-2"><Refresh /></el-icon> 同步 OJ 数据
+        </el-button>
+      </div>
     </div>
 
     <el-row :gutter="24" class="mb-6">
@@ -455,7 +483,9 @@ import {
   type StatsData,
   type SubmissionItem,
 } from '@/api/stats'
+import { getMembersApi } from '@/api'
 import { useUserStore } from '@/stores/user'
+import type { User } from '@/types/user'
 import dayjs from 'dayjs'
 import { formatTime } from '@/utils/helps'
 import CountUp from 'vue-countup-v3'
@@ -568,6 +598,10 @@ const syncDialogVisible = ref(false)
 const syncing = ref(false)
 const luoguCookie = ref('')
 const userStore = useUserStore()
+const viewingUserId = ref('')
+const viewingUser = ref<User | null>(null)
+const memberOptions = ref<User[]>([])
+const memberLoading = ref(false)
 
 const platforms = [
   { key: 'CodeForces', name: 'CodeForces', prop: 'cf' },
@@ -584,8 +618,71 @@ const availablePlatformKeys = computed(() => {
   return platforms.filter((p) => userOjInfo.value[p.prop as keyof OJInfo]).map((p) => p.key)
 })
 const availablePlatformsCount = computed(() => availablePlatformKeys.value.length)
+const viewingUserLabel = computed(() => {
+  if (!viewingUser.value) return ''
+  const user = viewingUser.value
+  return `${user.realName || user.username}${user.studentId ? `（${user.studentId}）` : ''}`
+})
+const statsUserId = computed(() => (userStore.isAdmin ? viewingUserId.value : ''))
 
 // --- Methods ---
+
+const getUserId = (user?: User | null) => user?._id || ''
+
+const formatMemberOption = (member: User) => {
+  const studentId = member.studentId ? ` / ${member.studentId}` : ''
+  const team = member.trainingTeam ? ` / ${member.trainingTeam === 'First' ? '一队' : '二队'}` : ''
+  return `${member.realName || member.username}${studentId}${team}`
+}
+
+const applyViewingUser = (user?: User | null) => {
+  const nextUser = user || userStore.userInfo
+  viewingUser.value = nextUser
+  viewingUserId.value = getUserId(nextUser)
+  userOjInfo.value = (nextUser?.ojInfo || { cf: '', at: '', lg: '', nc: '' }) as OJInfo
+  selectedPlatforms.value = platforms
+    .filter((p) => userOjInfo.value[p.prop as keyof OJInfo])
+    .map((p) => p.key)
+  handleCheckedPlatformsChange(selectedPlatforms.value)
+}
+
+const ensureMemberOption = (member?: User | null) => {
+  if (!member || !member._id) return
+  const exists = memberOptions.value.some((item) => item._id === member._id)
+  if (!exists) memberOptions.value.unshift(member)
+}
+
+const searchMembers = async (keyword = '') => {
+  if (!userStore.isAdmin) return
+  memberLoading.value = true
+  try {
+    const res = await getMembersApi({
+      page: 1,
+      pageSize: 30,
+      ...(keyword && { realName: keyword }),
+    })
+    memberOptions.value = res.list
+    ensureMemberOption(viewingUser.value)
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('加载成员列表失败')
+  } finally {
+    memberLoading.value = false
+  }
+}
+
+const handleViewingUserChange = (userId: string) => {
+  const selected = memberOptions.value.find((member) => member._id === userId)
+  applyViewingUser(selected || userStore.userInfo)
+  queryParams.page = 1
+  loadData()
+}
+
+const handleViewingUserClear = () => {
+  applyViewingUser(userStore.userInfo)
+  queryParams.page = 1
+  loadData()
+}
 
 // 🟢 切换时间段
 const changePeriod = (p: string) => {
@@ -930,6 +1027,7 @@ const loadTable = async () => {
     const params: any = {
       page: queryParams.page,
       size: queryParams.size,
+      ...(statsUserId.value && { userId: statsUserId.value }),
       problemId: queryParams.problemId,
       title: queryParams.title,
       minDiff: queryParams.minDiff,
@@ -962,7 +1060,7 @@ const loadData = async () => {
   loading.value = true
   try {
     // 确保你的 API 定义是: export const getChartDataApi = (period?: string) => http.get('...', { params: { period } })
-    const res = await getChartDataApi(timePeriod.value)
+    const res = await getChartDataApi(timePeriod.value, statsUserId.value)
 
     // 更新顶部卡片
     if (statsCards.value[0]) statsCards.value[0].value = res.total
@@ -1051,18 +1149,21 @@ const handleSync = async () => {
 }
 
 const fetchUserInfo = async () => {
-  if (userStore.userInfo && userStore.userInfo.ojInfo) {
-    userOjInfo.value = userStore.userInfo.ojInfo as OJInfo
-    selectedPlatforms.value = platforms
-      .filter((p) => userOjInfo.value[p.prop as keyof OJInfo])
-      .map((p) => p.key)
-    handleCheckedPlatformsChange(selectedPlatforms.value)
+  if (!userStore.userInfo) {
+    await userStore.fetchUserInfo()
+  }
+  if (userStore.userInfo) {
+    applyViewingUser(userStore.userInfo)
+    ensureMemberOption(userStore.userInfo)
+    if (userStore.isAdmin) {
+      await searchMembers()
+    }
   }
 }
 
-onMounted(() => {
-  fetchUserInfo()
-  loadData()
+onMounted(async () => {
+  await fetchUserInfo()
+  await loadData()
   window.addEventListener('resize', () => {
     Object.values(chartsInstance).forEach((c: any) => c && c.resize())
   })
@@ -1085,6 +1186,17 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  gap: 16px;
+}
+.header-main {
+  min-width: 0;
+}
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .page-title {
   font-family: 'Fira Code';
@@ -1092,6 +1204,14 @@ onMounted(() => {
   font-weight: 600;
   color: #303133;
   letter-spacing: -0.5px;
+}
+.viewer-subtitle {
+  margin-top: 6px;
+  color: #606266;
+  font-size: 13px;
+}
+.member-switcher {
+  width: 260px;
 }
 .sync-btn {
   font-weight: 600;
@@ -1448,8 +1568,14 @@ onMounted(() => {
     align-items: flex-start;
     gap: 12px;
 
+    .header-tools,
+    .member-switcher,
     .sync-btn {
       width: 100%; /* 按钮在手机上全宽更好点 */
+    }
+
+    .header-tools {
+      justify-content: flex-start;
     }
   }
 
