@@ -29,9 +29,23 @@
             :value="member._id || ''"
           />
         </el-select>
-        <el-button type="primary" color="#626aef" class="sync-btn" @click="openSyncDialog">
-          <el-icon class="mr-2"><Refresh /></el-icon> 同步 OJ 数据
-        </el-button>
+        <el-tooltip
+          :disabled="canSyncViewingUser"
+          content="观察其他成员时不能同步 OJ 数据，请切回自己的页面同步"
+          placement="bottom"
+        >
+          <span class="sync-btn-wrapper">
+            <el-button
+              type="primary"
+              color="#626aef"
+              class="sync-btn"
+              :disabled="!canSyncViewingUser"
+              @click="openSyncDialog"
+            >
+              <el-icon class="mr-2"><Refresh /></el-icon> 同步 OJ 数据
+            </el-button>
+          </span>
+        </el-tooltip>
       </div>
     </div>
 
@@ -624,6 +638,10 @@ const viewingUserLabel = computed(() => {
   return `${user.realName || user.username}${user.studentId ? `（${user.studentId}）` : ''}`
 })
 const statsUserId = computed(() => (userStore.isAdmin ? viewingUserId.value : ''))
+const canSyncViewingUser = computed(() => {
+  const currentUserId = getUserId(userStore.userInfo)
+  return !userStore.isAdmin || !viewingUserId.value || viewingUserId.value === currentUserId
+})
 
 // --- Methods ---
 
@@ -1113,10 +1131,18 @@ const handleCheckAllChange = (val: CheckboxValueType) => {
   isIndeterminate.value = false
 }
 const openSyncDialog = () => {
+  if (!canSyncViewingUser.value) {
+    ElMessage.warning('观察其他成员时不能同步 OJ 数据，请切回自己的页面同步')
+    return
+  }
   syncDialogVisible.value = true
 }
 
 const handleSync = async () => {
+  if (!canSyncViewingUser.value) {
+    ElMessage.warning('观察其他成员时不能同步 OJ 数据，请切回自己的页面同步')
+    return
+  }
   const targets = selectedPlatforms.value
   if (targets.length === 0) return ElMessage.warning('请至少选择一个平台')
   if (targets.includes('Luogu') && !luoguCookie.value)
@@ -1212,6 +1238,9 @@ onMounted(async () => {
 }
 .member-switcher {
   width: 260px;
+}
+.sync-btn-wrapper {
+  display: inline-flex;
 }
 .sync-btn {
   font-weight: 600;
@@ -1570,6 +1599,7 @@ onMounted(async () => {
 
     .header-tools,
     .member-switcher,
+    .sync-btn-wrapper,
     .sync-btn {
       width: 100%; /* 按钮在手机上全宽更好点 */
     }
